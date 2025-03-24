@@ -1,0 +1,103 @@
+/* Card styling
+.card {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.2s;
+  }
+  
+  .card:hover {
+    transform: translateY(-5px);
+  }
+  
+  .card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .card .category {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background-color: #2563eb;
+    color: #ffffff;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+  
+  .card .content {
+    padding: 16px;
+  }
+  
+  .card .content .date-source {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 8px;
+  }
+  
+  .card .content h2 {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #1f2937;
+    transition: color 0.2s;
+  }
+  
+  .card .content h2:hover {
+    color: #2563eb;
+  }
+  
+  .card .content p {
+    font-size: 14px;
+    color: #4b5563;
+    margin-bottom: 16px;
+  }
+  
+  .card .content .actions {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: #6b7280;
+  }
+  
+  .card .content .actions button,
+  .card .content .actions a {
+    display: flex;
+    align-items: center;
+    margin-right: 16px;
+    color: inherit;
+    transition: color 0.2s;
+  }
+  
+  .card .content .actions button:hover,
+  .card .content .actions a:hover {
+    color: #2563eb;
+  }
+  
+  .card .content .actions svg {
+    margin-right: 4px;
+  } */
+
+/* We can remove most of this CSS file since we'll be using Tailwind classes directly in the component */
+/* Only keeping some transition styles that might be cleaner to maintain here */
+.card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+/* Any specific animations that are complex can stay here */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
