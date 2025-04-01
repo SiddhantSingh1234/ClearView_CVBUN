@@ -40,6 +40,21 @@ export interface User {
     lean_right: number;
     right: number;
   }
+
+  export interface FakeNewsPercentages {
+    id: string;
+    true: number;
+    fake: number;
+  }
+
+  export interface SentimentAnalysisScore {
+    id: string;
+    label: string;
+    score: number;
+    positive: number;
+    neutral: number;
+    negative: number;
+  }
   
   export interface Comment {
     id: string;

@@ -335,7 +335,7 @@
 import { useState, useEffect } from 'react';
 import ArticleCard from '../components/ArticleCard';
 import CategoryFilter from '../components/CategoryFilter';
-import { Article } from '../types';
+import { Article, FakeNewsPercentages, SentimentAnalysisScore } from '../types';
 import { LeftRightPercentages } from '../types';
 import './Home.css';
 
@@ -345,11 +345,14 @@ const Home = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [articlesWithAnalysis, setArticlesWithAnalysis] = useState<(Article & { 
     biasAnalysis?: LeftRightPercentages 
+  } & {
+    fakeNewsAnalysis?: FakeNewsPercentages
+  } & {
+    sentimentAnalysis?: SentimentAnalysisScore
   })[]>([]);
 
   const categories = [
-    'Politics', 'Business', 'Technology', 'Science', 'Health', 
-    'Sports', 'Entertainment', 'World', 'Environment', 'Education', 'General'
+    'Politics', 'Business', 'Tech', 'Sports', 'Entertainment', 'General'
   ];
 
   useEffect(() => {
@@ -366,6 +369,7 @@ const Home = () => {
         })));
         
         // Process each article's analysis independently
+        // Political Bias (Left-Right)
         data.forEach(async (article: Article) => {
           try {
             const response = await fetch('http://127.0.0.1:3000/analyse', {
@@ -398,7 +402,78 @@ const Home = () => {
               )
             );
           } catch (error) {
-            console.error(`Error analyzing article ${article.id}:`, error);
+            console.error(`Error analysing article ${article.id}:`, error);
+          }
+        });
+
+        // Fake News Flag
+        data.forEach(async (article: Article) => {
+          try {
+            const response = await fetch('http://127.0.0.1:4000/analyse_fake_news', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                input_text: `${article.title} [SEP] ${article.content}`
+              })
+            });
+            
+            const fakeNewsResult = await response.json();
+            console.log(fakeNewsResult)
+            
+            // Update just this specific article with its analysis
+            setArticlesWithAnalysis(prevArticles => 
+              prevArticles.map(prevArticle => 
+                prevArticle.id === article.id 
+                  ? {
+                      ...prevArticle,
+                      fakeNewsAnalysis: {
+                        id: article.id,
+                        true: fakeNewsResult.true,
+                        fake: fakeNewsResult.fake,
+                      }
+                    }
+                  : prevArticle
+              )
+            );
+          } catch (error) {
+            console.error(`Error analysing fake news flag for article ${article.id}:`, error);
+          }
+        });
+
+        // Sentiment Analysis Score
+        data.forEach(async (article: Article) => {
+          try {
+            const response = await fetch('http://127.0.0.1:7000/analyse_sentiment_analysis', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                input_text: `${article.title}: ${article.content}`
+              })
+            });
+            
+            const sentimentAnalysisResult = await response.json();
+            console.log(sentimentAnalysisResult)
+            
+            // Update just this specific article with its analysis
+            setArticlesWithAnalysis(prevArticles => 
+              prevArticles.map(prevArticle => 
+                prevArticle.id === article.id 
+                  ? {
+                      ...prevArticle,
+                      sentimentAnalysis: {
+                        id: article.id,
+                        label: sentimentAnalysisResult.sentiment,
+                        score: sentimentAnalysisResult.score,
+                        positive: sentimentAnalysisResult.positive,
+                        neutral: sentimentAnalysisResult.neutral,
+                        negative: sentimentAnalysisResult.negative,
+                      }
+                    }
+                  : prevArticle
+              )
+            );
+          } catch (error) {
+            console.error(`Error analysing sentiment analysis score for article ${article.id}:`, error);
           }
         });
       } catch (error) {
@@ -460,7 +535,9 @@ const Home = () => {
                 <ArticleCard 
                   key={article.id} 
                   article={article}
-                  percentage={article.biasAnalysis} 
+                  percentage={article.biasAnalysis}
+                  fakeNewsPercentage={article.fakeNewsAnalysis}
+                  sentimentNewsScore={article.sentimentAnalysis}
                   onLike={handleLike}
                   onShare={handleShare}
                 />

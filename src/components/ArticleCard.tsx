@@ -112,23 +112,67 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FiThumbsUp, FiMessageSquare, FiShare2 } from 'react-icons/fi';
 import { format } from 'date-fns';
-import { Article } from '../types';
+import { Article, FakeNewsPercentages, SentimentAnalysisScore } from '../types';
 import { LeftRightPercentages } from '../types';
 import PoliticalLeaningBar from './PoliticalLeaningBar';
 import './ArticleCard.css'
+import { Progress } from "@/components/ui/progress"
 
 interface ArticleCardProps {
   article: Article;
   percentage?: LeftRightPercentages;
+  fakeNewsPercentage?: FakeNewsPercentages;
+  sentimentNewsScore?: SentimentAnalysisScore;
   onLike: (articleId: string) => void;
   onShare: (articleId: string) => void;
 }
 
-const ArticleCard = ({ article, percentage, onLike, onShare }: ArticleCardProps) => {
+const ArticleCard = ({ article, percentage, fakeNewsPercentage, sentimentNewsScore, onLike, onShare }: ArticleCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const toggleExpand = () => {
     setIsExpanded(!isExpanded);
+  };
+
+  const renderSentimentEmoji = () => {
+    if (!sentimentNewsScore) return null;
+  
+    const sentimentMap = {
+      Positive: {
+        emoji: '😄',
+        textClass: 'text-green-600 dark:text-green-400',
+        bgClass: 'bg-green-200 dark:bg-green-800',
+        percentage: sentimentNewsScore.positive
+      },
+      Neutral: {
+        emoji: '😐',
+        textClass: 'text-blue-600 dark:text-blue-400',
+        bgClass: 'bg-blue-200 dark:bg-blue-800',
+        percentage: sentimentNewsScore.neutral
+      },
+      Negative: {
+        emoji: '😠',
+        textClass: 'text-red-600 dark:text-red-400',
+        bgClass: 'bg-red-200 dark:bg-red-800',
+        percentage: sentimentNewsScore.negative
+      }
+    };
+  
+    return (
+      <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs backdrop-blur-sm rounded-md px-3 py-1 flex flex-col space-y-1 shadow-md">
+        {Object.entries(sentimentMap).map(([label, sentiment]) => (
+          <div
+            key={label}
+            className={`flex items-center space-x-1 px-2 py-1 rounded ${label === sentimentNewsScore.label ? `font-semibold shadow-sm ${sentiment.bgClass}` : ''}`}
+          >
+            <span className={`text-base ${sentiment.textClass}`}>{sentiment.emoji}</span>
+            <span className={`text-xs ${sentiment.textClass}`}>
+              {sentiment.percentage.toFixed(1)}%
+            </span>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -140,18 +184,29 @@ const ArticleCard = ({ article, percentage, onLike, onShare }: ArticleCardProps)
             alt={article.title} 
             className="w-full h-full object-cover"
           />
+          {/* Sentiment Analysis Score */}
+          {renderSentimentEmoji()}
           <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
             {article.category}
           </div>
         </div>
       )}
       <div className="p-4">
-        <div className="flex justify-between items-start mb-2">
+        <div className="flex justify-between items-center mb-2">
           <div>
             <span className="text-xs text-muted-foreground">
               {format(article.publishedAt, 'MMM d, yyyy')} • {article.source}
             </span>
           </div>
+          {/* Fake News Flag */}
+          {fakeNewsPercentage && (
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-muted-foreground">Fake Meter:</span>
+              <div className="w-32"> {/* Increased width */}
+                <Progress value={fakeNewsPercentage.fake} />
+              </div>
+            </div>
+          )}
         </div>
         <Link to={`/article/${article.id}`}>
           <h2 className="text-xl font-bold mb-2 text-foreground hover:text-primary transition-colors duration-200">

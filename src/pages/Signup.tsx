@@ -156,6 +156,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import axios from 'axios'; // Add axios for API calls
 
 const Signup = () => {
   const [email, setEmail] = useState('');
@@ -184,10 +185,22 @@ const Signup = () => {
     try {
       setError('');
       setLoading(true);
-      await signup(email, password, displayName);
+
+      // // Call the backend signup API
+      // const response = await axios.post<{ token: string; userId: string }>('http://localhost:8000/api/auth/signup', { email, password, username: displayName });
+      
+      // // // Store the token and user ID in localStorage
+      // localStorage.setItem('token', response.data.token);
+      // localStorage.setItem('userId', response.data.userId);
+
+      // Update the auth context (if using a global state)
+      signup(displayName, email, password);
+
+      // Redirect to the preferences page
       navigate('/preferences');
-    } catch (err) {
-      setError('Failed to create an account. Email may already be in use.');
+    } catch (err : any) {
+      // Handle specific error messages from the backend
+      setError(err.response?.data?.error || 'Failed to create an account. Email may already be in use.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -204,7 +217,7 @@ const Signup = () => {
           <p className="mt-2 text-center text-sm text-muted-foreground">
             Or{' '}
             <Link to="/login" className="font-medium text-primary hover:text-primary/90">
-              sign in to your existing account
+              Sign in to your existing account
             </Link>
           </p>
         </div>
@@ -222,6 +235,8 @@ const Signup = () => {
               <input
                 type="text"
                 id="display-name"
+                name="displayName"
+                placeholder="Full Name"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
@@ -234,7 +249,10 @@ const Signup = () => {
               </label>
               <input
                 type="email"
-                id="email"
+                id="email-address"
+                name="email"
+                autoComplete="email"
+                placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
@@ -248,6 +266,9 @@ const Signup = () => {
               <input
                 type="password"
                 id="password"
+                name="password"
+                autoComplete="new-password"
+                placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
@@ -261,6 +282,9 @@ const Signup = () => {
               <input
                 type="password"
                 id="confirm-password"
+                name="confirmPassword"
+                autoComplete="new-password"
+                placeholder="Confirm Password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary"

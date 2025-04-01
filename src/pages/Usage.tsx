@@ -8,7 +8,7 @@
 // import './Usage.css'
 
 // const Usage = () => {
-//   const { currentUser } = useAuth();
+//   const { userData } = useAuth();
 //   const [activities, setActivities] = useState<UserActivity[]>([]);
 //   const [loading, setLoading] = useState(true);
 //   const [stats, setStats] = useState({
@@ -21,14 +21,14 @@
 
 //   useEffect(() => {
 //     const fetchUserActivity = async () => {
-//       if (!currentUser) return;
+//       if (!userData) return;
       
 //       try {
 //         setLoading(true);
 //         const activitiesRef = collection(db, 'userActivities');
 //         const activitiesQuery = query(
 //           activitiesRef,
-//           where('userId', '==', currentUser.uid),
+//           where('userId', '==', userData.uid),
 //           orderBy('timestamp', 'desc'),
 //           limit(50)
 //         );
@@ -68,7 +68,7 @@
 //     };
 
 //     fetchUserActivity();
-//   }, [currentUser]);
+//   }, [userData]);
 
 //   const formatTime = (seconds: number) => {
 //     const hours = Math.floor(seconds / 3600);
@@ -114,7 +114,7 @@
 //     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 //       <h1 className="text-3xl font-bold mb-6">Your Usage</h1>
       
-//       {!currentUser ? (
+//       {!userData ? (
 //         <div className="card p-6 text-center">
 //           <h2 className="text-xl font-semibold mb-3">Sign In to View Your Usage</h2>
 //           <p className="text-secondary-600 mb-4">
@@ -242,17 +242,261 @@
 
 // export default Usage;
 
+// import { useState, useEffect } from 'react';
+// import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+// import { db } from '../firebase/config';
+// import { useAuth } from '../context/AuthContext';
+// import { UserActivity } from '../types';
+// import { format } from 'date-fns';
+// import { FiClock, FiEye, FiThumbsUp, FiMessageSquare, FiShare2 } from 'react-icons/fi';
+
+// const Usage = () => {
+//   const { userData } = useAuth();
+//   const [activities, setActivities] = useState<UserActivity[]>([]);
+//   const [loading, setLoading] = useState(true);
+//   const [stats, setStats] = useState({
+//     totalArticlesRead: 0,
+//     totalTimeSpent: 0,
+//     totalLikes: 0,
+//     totalComments: 0,
+//     totalShares: 0
+//   });
+
+//   useEffect(() => {
+//     const fetchUserActivity = async () => {
+//       if (!userData) return;
+//       try {
+//         setLoading(true);
+//         const activitiesRef = collection(db, 'userActivities');
+//         const activitiesQuery = query(
+//           activitiesRef,
+//           where('userId', '==', userData._id),
+//           orderBy('timestamp', 'desc'),
+//           limit(50)
+//         );
+//         const querySnapshot = await getDocs(activitiesQuery);
+//         const activitiesData = querySnapshot.docs.map(doc => {
+//           const data = doc.data();
+//           return {
+//             ...data,
+//             id: doc.id,
+//             timestamp: data.timestamp.toDate(),
+//           } as UserActivity;
+//         });
+//         setActivities(activitiesData);
+        
+//         // Calculate stats
+//         const views = activitiesData.filter(a => a.action === 'view').length;
+//         const likes = activitiesData.filter(a => a.action === 'like').length;
+//         const comments = activitiesData.filter(a => a.action === 'comment').length;
+//         const shares = activitiesData.filter(a => a.action === 'share').length;
+//         const totalTime = activitiesData.reduce((sum, activity) => sum + (activity.duration || 0), 0);
+        
+//         setStats({
+//           totalArticlesRead: views,
+//           totalTimeSpent: totalTime,
+//           totalLikes: likes,
+//           totalComments: comments,
+//           totalShares: shares
+//         });
+//       } catch (error) {
+//         console.error('Error fetching user activity:', error);
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+//     fetchUserActivity();
+//   }, [userData]);
+
+//   const formatTime = (seconds: number) => {
+//     const hours = Math.floor(seconds / 3600);
+//     const minutes = Math.floor((seconds % 3600) / 60);
+//     if (hours > 0) {
+//       return `${hours}h ${minutes}m`;
+//     }
+//     return `${minutes}m`;
+//   };
+
+//   const getActionIcon = (action: string) => {
+//     switch (action) {
+//       case 'view':
+//         return <FiEye className="text-primary" />;
+//       case 'like':
+//         return <FiThumbsUp className="text-primary" />;
+//       case 'comment':
+//         return <FiMessageSquare className="text-primary" />;
+//       case 'share':
+//         return <FiShare2 className="text-primary" />;
+//       default:
+//         return null;
+//     }
+//   };
+
+//   const getActionText = (action: string) => {
+//     switch (action) {
+//       case 'view':
+//         return 'Read an article';
+//       case 'like':
+//         return 'Liked an article';
+//       case 'comment':
+//         return 'Commented on an article';
+//       case 'share':
+//         return 'Shared an article';
+//       default:
+//         return 'Interacted with an article';
+//     }
+//   };
+
+//   return (
+//     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+//       <h1 className="text-3xl font-bold mb-6 text-foreground">Your Usage</h1>
+//       {!userData ? (
+//         <div className="bg-card p-6 rounded-lg shadow-md text-center">
+//           <h2 className="text-xl font-semibold mb-3 text-foreground">Sign In to View Your Usage</h2>
+//           <p className="text-muted-foreground mb-4">You need to be logged in to see your reading history and activity.</p>
+//           <div className="flex justify-center space-x-4">
+//             <a href="/login" className="bg-primary text-primary-foreground py-2 px-4 rounded-md font-medium hover:bg-primary/90">Sign In</a>
+//             <a href="/signup" className="border border-primary text-primary py-2 px-4 rounded-md font-medium hover:bg-primary/10">Create Account</a>
+//           </div>
+//         </div>
+//       ) : loading ? (
+//         <div className="flex justify-center items-center h-64">
+//           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+//         </div>
+//       ) : (
+//         <div className="space-y-8">
+//           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+//             {[
+//               { label: 'Articles Read', value: stats.totalArticlesRead, icon: <FiEye className="text-primary" /> },
+//               { label: 'Time Spent', value: formatTime(stats.totalTimeSpent), icon: <FiClock className="text-primary" /> },
+//               { label: 'Likes', value: stats.totalLikes, icon: <FiThumbsUp className="text-primary" /> },
+//               { label: 'Comments', value: stats.totalComments, icon: <FiMessageSquare className="text-primary" /> },
+//               { label: 'Shares', value: stats.totalShares, icon: <FiShare2 className="text-primary" /> },
+//             ].map((stat, index) => (
+//               <div key={index} className="bg-card p-4 rounded-lg shadow-md flex items-center">
+//                 <div className="p-3 rounded-full bg-muted text-primary mr-4">{stat.icon}</div>
+//                 <div>
+//                   <p className="text-sm text-muted-foreground">{stat.label}</p>
+//                   <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+//                 </div>
+//               </div>
+//             ))}
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   );
+// };
+
+// export default Usage;
+
+// import { useState, useEffect } from 'react';
+// import { useAuth } from '../context/AuthContext';
+// import axios from 'axios';
+// import { format } from 'date-fns';
+// import { FiClock, FiEye, FiThumbsUp, FiMessageSquare, FiShare2 } from 'react-icons/fi';
+// import { UserActivity } from '@/types';
+
+// const Usage = () => {
+//   const { userData } = useAuth();
+//   const [activities, setActivities] = useState([]);
+//   const [loading, setLoading] = useState(true);
+//   const [stats, setStats] = useState({
+//     totalArticlesRead: 0,
+//     totalTimeSpent: 0,
+//     totalLikes: 0,
+//     totalComments: 0,
+//     totalShares: 0
+//   });
+
+//   useEffect(() => {
+//     const fetchUserActivity = async () => {
+//       if (!userData) return;
+//       try {
+//         setLoading(true);
+//         const response = await axios.get(`http://127.0.0.1:5000/user_activity/${userData._id}`);
+//         const activitiesData = response.data;
+//         setActivities(activitiesData);
+
+//         // Calculate stats
+//         const views = activitiesData.filter((a: UserActivity) => a.action === 'view').length;
+//         const likes = activitiesData.filter((a: UserActivity) => a.action === 'like').length;
+//         const comments = activitiesData.filter((a: UserActivity) => a.action === 'comment').length;
+//         const shares = activitiesData.filter((a: UserActivity) => a.action === 'share').length;
+//         const totalTime = activitiesData.reduce((sum: number, activity: UserActivity) => sum + (activity.duration || 0), 0);
+
+//         setStats({
+//           totalArticlesRead: views,
+//           totalTimeSpent: totalTime,
+//           totalLikes: likes,
+//           totalComments: comments,
+//           totalShares: shares
+//         });
+//       } catch (error) {
+//         console.error('Error fetching user activity:', error);
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+//     fetchUserActivity();
+//   }, [userData]);
+
+//   const formatTime = (seconds: number) => {
+//     const hours = Math.floor(seconds / 3600);
+//     const minutes = Math.floor((seconds % 3600) / 60);
+//     return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+//   };
+
+//   return (
+//     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+//       <h1 className="text-3xl font-bold mb-6 text-foreground">Your Usage</h1>
+//       {!userData ? (
+//         <div className="bg-card p-6 rounded-lg shadow-md text-center">
+//           <h2 className="text-xl font-semibold mb-3 text-foreground">Sign In to View Your Usage</h2>
+//           <p className="text-muted-foreground mb-4">You need to be logged in to see your reading history and activity.</p>
+//           <div className="flex justify-center space-x-4">
+//             <a href="/login" className="bg-primary text-primary-foreground py-2 px-4 rounded-md font-medium hover:bg-primary/90">Sign In</a>
+//             <a href="/signup" className="border border-primary text-primary py-2 px-4 rounded-md font-medium hover:bg-primary/10">Create Account</a>
+//           </div>
+//         </div>
+//       ) : loading ? (
+//         <div className="flex justify-center items-center h-64">
+//           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+//         </div>
+//       ) : (
+//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+//           {[
+//             { label: 'Articles Read', value: stats.totalArticlesRead, icon: <FiEye className="text-primary" /> },
+//             { label: 'Time Spent', value: formatTime(stats.totalTimeSpent), icon: <FiClock className="text-primary" /> },
+//             { label: 'Likes', value: stats.totalLikes, icon: <FiThumbsUp className="text-primary" /> },
+//             { label: 'Comments', value: stats.totalComments, icon: <FiMessageSquare className="text-primary" /> },
+//             { label: 'Shares', value: stats.totalShares, icon: <FiShare2 className="text-primary" /> },
+//           ].map((stat, index) => (
+//             <div key={index} className="bg-card p-4 rounded-lg shadow-md flex items-center">
+//               <div className="p-3 rounded-full bg-muted text-primary mr-4">{stat.icon}</div>
+//               <div>
+//                 <p className="text-sm text-muted-foreground">{stat.label}</p>
+//                 <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+//               </div>
+//             </div>
+//           ))}
+//         </div>
+//       )}
+//     </div>
+//   );
+// };
+
+// export default Usage;
+
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
-import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
-import { UserActivity } from '../types';
+import axios from 'axios';
 import { format } from 'date-fns';
 import { FiClock, FiEye, FiThumbsUp, FiMessageSquare, FiShare2 } from 'react-icons/fi';
+import { UserActivity } from '@/types';
 
 const Usage = () => {
-  const { currentUser } = useAuth();
-  const [activities, setActivities] = useState<UserActivity[]>([]);
+  const { userData } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalArticlesRead: 0,
@@ -264,34 +508,23 @@ const Usage = () => {
 
   useEffect(() => {
     const fetchUserActivity = async () => {
-      if (!currentUser) return;
+      if (!userData) return;
       try {
         setLoading(true);
-        const activitiesRef = collection(db, 'userActivities');
-        const activitiesQuery = query(
-          activitiesRef,
-          where('userId', '==', currentUser.uid),
-          orderBy('timestamp', 'desc'),
-          limit(50)
-        );
-        const querySnapshot = await getDocs(activitiesQuery);
-        const activitiesData = querySnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            ...data,
-            id: doc.id,
-            timestamp: data.timestamp.toDate(),
-          } as UserActivity;
-        });
-        setActivities(activitiesData);
+
+        // Assuming you want to fetch user activity from the backend
+        const response = await axios.get(`http://127.0.0.1:5000/user_activity/${userData._id}`);
+        const activitiesData = response.data;
+
+        // Calculate stats from the likedArticles, comments, and potential duration
+        const views = activitiesData.filter((a: UserActivity) => a.action === 'view').length;
+        const likes = userData.likedArticles.length; // Count of liked articles directly
+        const comments = userData.comments.length;   // Count of comments directly
+        const shares = activitiesData.filter((a: UserActivity) => a.action === 'share').length;
         
-        // Calculate stats
-        const views = activitiesData.filter(a => a.action === 'view').length;
-        const likes = activitiesData.filter(a => a.action === 'like').length;
-        const comments = activitiesData.filter(a => a.action === 'comment').length;
-        const shares = activitiesData.filter(a => a.action === 'share').length;
-        const totalTime = activitiesData.reduce((sum, activity) => sum + (activity.duration || 0), 0);
-        
+        // For time spent, since there's no direct duration, assuming preferences can contribute to it
+        const totalTime = activitiesData.reduce((sum: number, activity: UserActivity) => sum + (activity.duration || 0), 0);
+
         setStats({
           totalArticlesRead: views,
           totalTimeSpent: totalTime,
@@ -306,51 +539,18 @@ const Usage = () => {
       }
     };
     fetchUserActivity();
-  }, [currentUser]);
+  }, [userData]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m`;
-  };
-
-  const getActionIcon = (action: string) => {
-    switch (action) {
-      case 'view':
-        return <FiEye className="text-primary" />;
-      case 'like':
-        return <FiThumbsUp className="text-primary" />;
-      case 'comment':
-        return <FiMessageSquare className="text-primary" />;
-      case 'share':
-        return <FiShare2 className="text-primary" />;
-      default:
-        return null;
-    }
-  };
-
-  const getActionText = (action: string) => {
-    switch (action) {
-      case 'view':
-        return 'Read an article';
-      case 'like':
-        return 'Liked an article';
-      case 'comment':
-        return 'Commented on an article';
-      case 'share':
-        return 'Shared an article';
-      default:
-        return 'Interacted with an article';
-    }
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-3xl font-bold mb-6 text-foreground">Your Usage</h1>
-      {!currentUser ? (
+      {!userData ? (
         <div className="bg-card p-6 rounded-lg shadow-md text-center">
           <h2 className="text-xl font-semibold mb-3 text-foreground">Sign In to View Your Usage</h2>
           <p className="text-muted-foreground mb-4">You need to be logged in to see your reading history and activity.</p>
@@ -364,24 +564,36 @@ const Usage = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         </div>
       ) : (
-        <div className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            {[
-              { label: 'Articles Read', value: stats.totalArticlesRead, icon: <FiEye className="text-primary" /> },
-              { label: 'Time Spent', value: formatTime(stats.totalTimeSpent), icon: <FiClock className="text-primary" /> },
-              { label: 'Likes', value: stats.totalLikes, icon: <FiThumbsUp className="text-primary" /> },
-              { label: 'Comments', value: stats.totalComments, icon: <FiMessageSquare className="text-primary" /> },
-              { label: 'Shares', value: stats.totalShares, icon: <FiShare2 className="text-primary" /> },
-            ].map((stat, index) => (
-              <div key={index} className="bg-card p-4 rounded-lg shadow-md flex items-center">
-                <div className="p-3 rounded-full bg-muted text-primary mr-4">{stat.icon}</div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {[{
+            label: 'Articles Read',
+            value: stats.totalArticlesRead,
+            icon: <FiEye className="text-primary" />
+          }, {
+            label: 'Time Spent',
+            value: formatTime(stats.totalTimeSpent),
+            icon: <FiClock className="text-primary" />
+          }, {
+            label: 'Likes',
+            value: stats.totalLikes,
+            icon: <FiThumbsUp className="text-primary" />
+          }, {
+            label: 'Comments',
+            value: stats.totalComments,
+            icon: <FiMessageSquare className="text-primary" />
+          }, {
+            label: 'Shares',
+            value: stats.totalShares,
+            icon: <FiShare2 className="text-primary" />
+          }].map((stat, index) => (
+            <div key={index} className="bg-card p-4 rounded-lg shadow-md flex items-center">
+              <div className="p-3 rounded-full bg-muted text-primary mr-4">{stat.icon}</div>
+              <div>
+                <p className="text-sm text-muted-foreground">{stat.label}</p>
+                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

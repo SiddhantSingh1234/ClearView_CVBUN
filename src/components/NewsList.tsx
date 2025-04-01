@@ -122,7 +122,7 @@
 
 import { useEffect, useState } from "react";
 import ArticleCard from "./ArticleCard";
-import { LeftRightPercentages } from '../types';
+import { FakeNewsPercentages, LeftRightPercentages } from '../types';
 import { Article } from "../types";
 
 const NewsList = () => {
@@ -130,6 +130,8 @@ const NewsList = () => {
   const [loading, setLoading] = useState(true);
   const [articlesWithAnalysis, setArticlesWithAnalysis] = useState<(Article & { 
     biasAnalysis?: LeftRightPercentages 
+  } & {
+    fakeNewsAnalysis?: FakeNewsPercentages
   })[]>([]);
 
   useEffect(() => {
@@ -146,6 +148,7 @@ const NewsList = () => {
         })));
         
         // Process each article's analysis independently
+        // Political Bias (Left-Right)
         data.forEach(async (article: Article, index: number) => {
           try {
             const response = await fetch('http://127.0.0.1:3000/analyse', {
@@ -179,6 +182,40 @@ const NewsList = () => {
             );
           } catch (error) {
             console.error(`Error analyzing article ${article.id}:`, error);
+          }
+        });
+
+        // Fake News Flag
+        data.forEach(async (article: Article) => {
+          try {
+            const response = await fetch('http://127.0.0.1:4000/analyse_fake_news', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                input_text: `${article.title} [SEP] ${article.content}`
+              })
+            });
+            
+            const fakeNewsResult = await response.json();
+            console.log(fakeNewsResult)
+            
+            // Update just this specific article with its analysis
+            setArticlesWithAnalysis(prevArticles => 
+              prevArticles.map(prevArticle => 
+                prevArticle.id === article.id 
+                  ? {
+                      ...prevArticle,
+                      fakeNewsAnalysis: {
+                        id: article.id,
+                        true: fakeNewsResult.true,
+                        fake: fakeNewsResult.fake,
+                      }
+                    }
+                  : prevArticle
+              )
+            );
+          } catch (error) {
+            console.error(`Error analysing fake news flag for article ${article.id}:`, error);
           }
         });
       } catch (error) {
@@ -244,12 +281,13 @@ const NewsList = () => {
           <p className="text-card-foreground text-lg">No articles found</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-4 md:gap-6">
           {articlesWithAnalysis.map((article) => (
             <ArticleCard
               key={article._id}
               article={article}
               percentage={article.biasAnalysis}
+              fakeNewsPercentage={article.fakeNewsAnalysis}
               onLike={handleLike}
               onShare={handleShare}
             />

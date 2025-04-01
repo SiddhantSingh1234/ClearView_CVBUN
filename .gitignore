@@ -55,6 +55,7 @@ results/
 fine_tuned_roberta/
 ~/.cache/huggingface/
 ~/.cache/datasets/
+fine_tuned_fake_news_roberta/
 
 # Tokenizer cache
 tokenizer.json
@@ -66,3 +67,6 @@ tokenizer_config.json
 # Huggingface uploading files and credentials
 left_right_classification_clearview_huggingface_token.txt
 uploading_to_huggingface.py
+
+# CSV files
+*.csv

@@ -207,9 +207,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { UserPreferences } from '../types';
+import axios from 'axios'; // Add axios for API calls
 
 const Preferences = () => {
-  const { userData, updateUserPreferences } = useAuth();
+  // const { userData, updateUserPreferences } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>({
@@ -220,21 +221,16 @@ const Preferences = () => {
   });
 
   const categories = [
-    'Politics', 'Business', 'Technology', 'Science', 'Health', 
-    'Sports', 'Entertainment', 'World', 'Environment', 'Education'
+    'Politics', 'Business', 'Tech',
+    'Sports', 'Entertainment', 'General'
   ];
 
   const topicsByCategory: Record<string, string[]> = {
     Politics: ['US Politics', 'International Relations', 'Elections', 'Policy', 'Legislation'],
     Business: ['Economy', 'Markets', 'Startups', 'Finance', 'Real Estate'],
-    Technology: ['AI', 'Cybersecurity', 'Gadgets', 'Software', 'Internet'],
-    Science: ['Space', 'Physics', 'Biology', 'Climate', 'Research'],
-    Health: ['Medicine', 'Wellness', 'Nutrition', 'Mental Health', 'Fitness'],
+    Tech: ['AI', 'Cybersecurity', 'Gadgets', 'Software', 'Internet'],
     Sports: ['Football', 'Basketball', 'Tennis', 'Soccer', 'Olympics'],
-    Entertainment: ['Movies', 'Music', 'TV Shows', 'Celebrities', 'Gaming'],
-    World: ['Europe', 'Asia', 'Middle East', 'Africa', 'Americas'],
-    Environment: ['Climate Change', 'Conservation', 'Pollution', 'Renewable Energy', 'Wildlife'],
-    Education: ['Higher Education', 'K-12', 'Learning', 'Teaching', 'Research']
+    Entertainment: ['Movies', 'Music', 'TV Shows', 'Celebrities', 'Gaming']
   };
 
   const sources = [
@@ -242,11 +238,11 @@ const Preferences = () => {
     'The Washington Post', 'The Guardian', 'Al Jazeera', 'Bloomberg', 'CNBC'
   ];
 
-  useEffect(() => {
-    if (userData?.preferences) {
-      setPreferences(userData.preferences);
-    }
-  }, [userData]);
+  // useEffect(() => {
+  //   if (userData?.preferences) {
+  //     updateUserPreferences(userData.preferences);
+  //   }
+  // }, [userData]);
 
   const handleCategoryToggle = (category: string) => {
     setPreferences(prev => {
@@ -279,10 +275,45 @@ const Preferences = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      await updateUserPreferences(preferences);
-      navigate('/for-you');
-    } catch (error) {
-      console.error('Error updating preferences:', error);
+  
+      // 1. Get fresh token (avoid stale token from localStorage)
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+  
+      // 2. Make request with debug logs
+      console.log('Using token:', token.slice(0, 10) + '...'); // Log partial token
+      const response = await axios.put(
+        'http://localhost:8000/api/user/preferences',
+        { preferences },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      // 3. Save updated preferences to localStorage
+      localStorage.setItem('preferences', JSON.stringify(response.data.preferences));
+
+      // 4. Provide user feedback (optional)
+      alert('Preferences updated successfully!');
+
+      // 5. Navigate to main page
+      navigate('/for-you')
+    } catch (error:any) {
+      if (error.response?.data?.error === 'Invalid token') {
+        // 3. Handle token invalidation
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        alert('Session expired. Please login again.');
+        navigate('/login');
+      } else {
+        console.error('Update error:', error);
+        alert(error.response?.data?.error || 'Update failed');
+      }
     } finally {
       setLoading(false);
     }
@@ -306,6 +337,7 @@ const Preferences = () => {
                   checked={preferences.categories.includes(category)}
                   onChange={() => handleCategoryToggle(category)}
                   className="h-4 w-4 text-primary focus:ring-primary border-border rounded"
+                  disabled={loading}
                 />
                 <label htmlFor={`category-${category}`} className="ml-2 text-sm text-foreground">
                   {category}
@@ -314,7 +346,45 @@ const Preferences = () => {
             ))}
           </div>
         </div>
-
+        
+        {/* Topics
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Topics</h2>
+          <p className="text-secondary-600 mb-4">Select specific topics within your chosen categories:</p>
+          
+          {preferences.categories.length > 0 ? (
+            <div className="space-y-6">
+              {preferences.categories.map(category => (
+                <div key={category} className="border-b pb-4">
+                  <h3 className="font-medium text-lg mb-2">{category}</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {topicsByCategory[category]?.map(topic => (
+                      <div key={topic} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id={`topic-${topic}`}
+                          checked={preferences.topics.includes(topic)}
+                          onChange={() => handleTopicToggle(topic)}
+                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-secondary-300 rounded"
+                          disabled={loading}
+                        />
+                        <label htmlFor={`topic-${topic}`} className="ml-2 block text-sm text-secondary-700">
+                          {topic}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-secondary-50 p-4 rounded-md text-secondary-600">
+              Please select at least one category to see related topics.
+            </div>
+          )}
+        </div> */}
+        
+        {/* Sources */}
         <div>
           <h2 className="text-xl font-semibold mb-4 text-foreground">News Sources</h2>
           <p className="text-muted-foreground mb-4">Select your preferred news sources:</p>
@@ -327,6 +397,7 @@ const Preferences = () => {
                   checked={preferences.sources.includes(source)}
                   onChange={() => handleSourceToggle(source)}
                   className="h-4 w-4 text-primary focus:ring-primary border-border rounded"
+                  disabled={loading}
                 />
                 <label htmlFor={`source-${source}`} className="ml-2 text-sm text-foreground">
                   {source}
@@ -337,7 +408,7 @@ const Preferences = () => {
         </div>
         
         <div className="pt-6 border-t border-border flex justify-end">
-          <button type="button" onClick={() => navigate('/')} className="px-4 py-2 text-primary border border-primary rounded-md font-medium hover:bg-primary/10 mr-4">
+          <button type="button" onClick={() => navigate('/')} className="px-4 py-2 text-primary border border-primary rounded-md font-medium hover:bg-primary/10 mr-4" disabled={loading}>
             Skip for now
           </button>
           <button type="submit" disabled={loading} className="px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 disabled:opacity-50">

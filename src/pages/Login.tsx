@@ -132,6 +132,7 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios'; // Add axios for API calls
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
@@ -144,6 +145,8 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Debug: Check inputs
+    console.log('Attempting login with:', { email, password });
     if (!email || !password) {
       setError('Please fill in all fields');
       return;
@@ -151,11 +154,35 @@ const Login = () => {
     try {
       setError('');
       setLoading(true);
-      await login(email, password);
-      navigate('/');
-    } catch (err) {
-      setError('Failed to sign in. Please check your credentials.');
-      console.error(err);
+      
+      // const response = await axios.post(
+      //   'http://localhost:8000/api/auth/login',
+      //   { email, password },
+      //   {
+      //     headers: {
+      //       'Content-Type': 'application/json'
+      //     }
+      //   }
+      // );
+  
+      // console.log('Login response:', response.data);
+      
+      // if (response.data.token && response.data.userId) {
+        // localStorage.setItem('token', response.data.token);
+        // localStorage.setItem('user', JSON.stringify(response.data.userId));
+      login(email, password);
+      navigate('/for-you');
+      // } else {
+      //   throw new Error('Invalid server response');
+      // }
+    } catch (error:any) {
+      console.error('Full login error:', {
+        message: error.message,
+        response: error.response?.data,
+        config: error.config
+      });
+      
+      setError(error.response?.data?.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -189,6 +216,9 @@ const Login = () => {
               <input
                 type="email"
                 id="email"
+                name="email"
+                autoComplete="email"
+                placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
@@ -202,6 +232,9 @@ const Login = () => {
               <input
                 type="password"
                 id="password"
+                name="password"
+                autoComplete="current-password"
+                placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
@@ -210,8 +243,8 @@ const Login = () => {
             </div>
           </div>
           <div className="flex items-center justify-between">
-            <label className="flex items-center text-sm text-muted-foreground">
-              <input type="checkbox" className="mr-2 rounded border-border bg-background text-primary focus:ring-primary" />
+            <label htmlFor="remember-me" className="flex items-center text-sm text-muted-foreground">
+              <input id="remember-me" name="remember-me" type="checkbox" className="mr-2 rounded border-border bg-background text-primary focus:ring-primary" />
               Remember me
             </label>
             <a href="#" className="text-sm text-primary hover:text-primary/90">Forgot password?</a>

@@ -224,15 +224,19 @@
 
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FiMenu, FiX, FiUser, FiHome, FiStar, FiSearch } from 'react-icons/fi';
+import { FiMenu, FiX, FiUser, FiHome, FiStar, FiSearch, FiSun, FiMoon, FiMessageSquare } from 'react-icons/fi';
 import { ModeToggle } from './mode-toggle';
 import { useAuth } from '../context/AuthContext';
 import { cn } from "@/lib/utils";
 import { useTheme } from '@/components/theme-provider';
+import Chatbot from './chatbot'; // Import the chatbot component
+import { Camera, User, Settings, BarChart2, LogOut } from 'lucide-react';
+import { Home, Star, Newspaper, Video, MessageSquare } from 'lucide-react';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { currentUser, logout } = useAuth();
+  const [isChatbotOpen, setIsChatbotOpen] = useState<boolean>(false);
+  const { userData, logout } = useAuth();
   const location = useLocation();
   const { theme } = useTheme();
 
@@ -242,7 +246,7 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     try {
-      await logout();
+      logout();
     } catch (error) {
       console.error('Failed to log out', error);
     }
@@ -251,6 +255,8 @@ const Navbar = () => {
   const isActive = (path: string) => {
     return location.pathname === path;
   };
+
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <nav className="bg-background border-b">
@@ -270,7 +276,7 @@ const Navbar = () => {
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 )}
               >
-                <FiHome className="mr-1" />
+                <Home className="mr-1" size={16} />
                 Home
               </Link>
               <Link 
@@ -282,8 +288,32 @@ const Navbar = () => {
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 )}
               >
-                <FiStar className="mr-1" />
+                <Star className="mr-1" size={16} />
                 For You
+              </Link>
+              <Link 
+                to="/news" 
+                className={cn(
+                  "inline-flex items-center px-1 pt-1 border-b-2",
+                  isActive('/news') 
+                    ? "border-primary text-primary font-semibold" 
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Newspaper className="mr-1" size={16} />
+                News
+              </Link>
+              <Link 
+                to="/videos" 
+                className={cn(
+                  "inline-flex items-center px-1 pt-1 border-b-2",
+                  isActive('/videos') 
+                    ? "border-primary text-primary font-semibold" 
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Video className="mr-1" size={16} />
+                Videos
               </Link>
             </div>
           </div>
@@ -297,53 +327,76 @@ const Navbar = () => {
               <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
             </div>
             <ModeToggle />
-            {currentUser ? (
+            {/* Chatbot Button */}
+            <button 
+              onClick={() => setIsChatbotOpen(true)}
+              className="font-medium flex items-center space-x-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              <MessageSquare size={16} />
+              <span>Chatbot</span>
+            </button>
+            {/* {isChatbotOpen && <Chatbot onClose={() => setIsChatbotOpen(false)}               />}
+                    <FiMessageSquare />
+                    <span>Chatbot</span> */}
+            {userData ? (
               <div className="flex items-center space-x-4">
                 <Link 
                   to="/subscription" 
-                  className="px-6 py-2 rounded-md border border-primary text-primary hover:bg-primary/10 font-medium transition-colors"
+                  className="font-medium flex items-center space-x-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
                   Subscribe
                 </Link>
                 <div className="relative group">
-                  <button className="flex items-center space-x-2 focus:outline-none">
+                  <button className="flex items-center space-x-2 focus:outline-none" onClick={() => setIsOpen(!isOpen)}>
                     <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
                       <FiUser />
                     </div>
                   </button>
-                  <div className="absolute right-0 mt-2 w-48 bg-popover rounded-md shadow-lg py-1 z-10 hidden group-hover:block">
-                    <Link 
-                      to="/profile" 
-                      className="block px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
-                    >
-                      Profile
-                    </Link>
-                    <Link 
-                      to="/preferences" 
-                      className="block px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
-                    >
-                      Preferences
-                    </Link>
-                    <Link 
-                      to="/usage" 
-                      className="block px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
-                    >
-                      Usage
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
-                    >
-                      Sign out
-                    </button>
-                  </div>
+                  {isOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-popover rounded-md shadow-lg py-1 z-10 hidden group-hover:block">
+                      <Link 
+                        to="/profile" 
+                        className="px-4 py-2 flex items-center text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <User className="mr-2" size={16} />
+                        Profile
+                      </Link>
+                      <Link 
+                        to="/preferences" 
+                        className="px-4 py-2 flex items-center text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <Settings className="mr-2" size={16} />
+                        Preferences
+                      </Link>
+                      <Link 
+                        to="/usage" 
+                        className="px-4 py-2 flex items-center text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <BarChart2 className="mr-2" size={16} />
+                        Usage
+                      </Link>
+                      <button
+                        onClick={() => {
+                          handleLogout();
+                          setIsOpen(false);
+                        }}
+                        className="w-full text-left flex items-center px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <LogOut className="mr-2" size={16} />
+                        Sign out
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
               <div className="flex items-center space-x-4">
                 <Link 
                   to="/subscription" 
-                  className="px-6 py-2 rounded-md border border-primary text-primary hover:bg-primary/10 font-medium transition-colors"
+                  className="font-medium flex items-center space-x-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
                   Subscribe
                 </Link>
@@ -396,7 +449,7 @@ const Navbar = () => {
             </Link>
           </div>
           <div className="pt-4 pb-3 border-t">
-            {currentUser ? (
+            {userData ? (
               <div>
                 <div className="flex items-center px-4">
                   <div className="flex-shrink-0">
@@ -406,9 +459,9 @@ const Navbar = () => {
                   </div>
                   <div className="ml-3">
                     <div className="text-base font-medium text-foreground">
-                      {currentUser.displayName || currentUser.email}
+                      {userData.username || userData.email}
                     </div>
-                    <div className="text-sm font-medium text-muted-foreground">{currentUser.email}</div>
+                    <div className="text-sm font-medium text-muted-foreground">{userData.email}</div>
                   </div>
                 </div>
                 <div className="mt-3 space-y-1">
@@ -463,6 +516,8 @@ const Navbar = () => {
           </div>
         </div>
       )}
+      {/* Chatbot Component */}
+      {isChatbotOpen && <Chatbot onClose={() => setIsChatbotOpen(false)} />}
     </nav>
   );
 };

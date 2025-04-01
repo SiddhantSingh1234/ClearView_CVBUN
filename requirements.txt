@@ -11,3 +11,9 @@ transformers[torch]
 torchvision
 torchaudio
 scikit-learn
+vaderSentiment
+nltk
+numpy
+opencv-python
+yt-dlp
+ffmpeg-python
