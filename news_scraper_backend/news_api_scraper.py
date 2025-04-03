@@ -45,12 +45,12 @@ def save_articles(articles):
             "_id": str(uuid.uuid4()),
             "id": str(uuid.uuid4()),
             "title": article["title"],
-            "description": article.get("description", ""),
-            "content": article.get("content", ""),
+            "description": article.get("description", "No description available"),
+            "content": article.get("content", "No content available"),
             "author": article.get("author", "Unknown"),
             "source": article.get("source", {}).get("name", "Unknown"),
             "url": url,
-            "imageUrl": article.get("urlToImage", ""),
+            "imageUrl": article.get("urlToImage", "No image"),
             "publishedAt": datetime.datetime.strptime(article["publishedAt"], "%Y-%m-%dT%H:%M:%SZ"),
             "category": "General",  # NewsAPI doesn't provide categories in free tier
             "topics": [],  # No topic data available

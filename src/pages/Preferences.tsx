@@ -210,14 +210,14 @@ import { UserPreferences } from '../types';
 import axios from 'axios'; // Add axios for API calls
 
 const Preferences = () => {
-  // const { userData, updateUserPreferences } = useAuth();
+  const { userData, updateUserPreferences } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>({
     categories: [],
-    topics: [],
+    // topics: [],
     sources: [],
-    favorites: []
+    // favorites: []
   });
 
   const categories = [
@@ -234,8 +234,8 @@ const Preferences = () => {
   };
 
   const sources = [
-    'Associated Press', 'Reuters', 'BBC', 'CNN', 'The New York Times', 
-    'The Washington Post', 'The Guardian', 'Al Jazeera', 'Bloomberg', 'CNBC'
+    'Associated Press', 'Reuters', 'BBC News', 'CNN', 'The New York Times', 
+    'The Washington Post', 'The Guardian', 'Al Jazeera', 'Bloomberg', 'CNBC', 'Fox News', 'The Daily Wire'
   ];
 
   // useEffect(() => {
@@ -253,14 +253,14 @@ const Preferences = () => {
     });
   };
 
-  const handleTopicToggle = (topic: string) => {
-    setPreferences(prev => {
-      const newTopics = prev.topics.includes(topic)
-        ? prev.topics.filter(t => t !== topic)
-        : [...prev.topics, topic];
-      return { ...prev, topics: newTopics };
-    });
-  };
+  // const handleTopicToggle = (topic: string) => {
+  //   setPreferences(prev => {
+  //     const newTopics = prev.topics.includes(topic)
+  //       ? prev.topics.filter(t => t !== topic)
+  //       : [...prev.topics, topic];
+  //     return { ...prev, topics: newTopics };
+  //   });
+  // };
 
   const handleSourceToggle = (source: string) => {
     setPreferences(prev => {
@@ -276,33 +276,35 @@ const Preferences = () => {
     try {
       setLoading(true);
   
-      // 1. Get fresh token (avoid stale token from localStorage)
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
+      // // 1. Get fresh token (avoid stale token from localStorage)
+      // const token = localStorage.getItem('token');
+      // if (!token) {
+      //   throw new Error('No authentication token found');
+      // }
   
-      // 2. Make request with debug logs
-      console.log('Using token:', token.slice(0, 10) + '...'); // Log partial token
-      const response = await axios.put(
-        'http://localhost:8000/api/user/preferences',
-        { preferences },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
+      // // 2. Make request with debug logs
+      // console.log('Using token:', token.slice(0, 10) + '...'); // Log partial token
+      // const response = await axios.put(
+      //   'http://localhost:8000/api/user/preferences',
+      //   { preferences },
+      //   {
+      //     headers: {
+      //       'Content-Type': 'application/json',
+      //       'Authorization': `Bearer ${token}`
+      //     }
+      //   }
+      // );
 
-      // 3. Save updated preferences to localStorage
-      localStorage.setItem('preferences', JSON.stringify(response.data.preferences));
+      // // 3. Save updated preferences to localStorage
+      // localStorage.setItem('preferences', JSON.stringify(response.data.preferences));
 
-      // 4. Provide user feedback (optional)
-      alert('Preferences updated successfully!');
+      // // 4. Provide user feedback (optional)
+      // alert('Preferences updated successfully!');
 
-      // 5. Navigate to main page
-      navigate('/for-you')
+      // // 5. Navigate to main page
+      // navigate("/for-you");
+
+      updateUserPreferences(preferences);
     } catch (error:any) {
       if (error.response?.data?.error === 'Invalid token') {
         // 3. Handle token invalidation

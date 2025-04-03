@@ -163,8 +163,8 @@
 
 // export default ArticleDetail;
 
-import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   ThumbsUp, 
   MessageSquare, 
@@ -181,20 +181,105 @@ import {
   ChevronLeft
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { Article } from '../types';
+import { Article, Comment } from '../types';
 import { cn } from '../lib/utils'; // Assuming you have a cn utility for class merging
+import { LeftRightPercentages, FakeNewsPercentages, SentimentAnalysisScore } from '../types';
+import toast from 'react-hot-toast';
+import axios from 'axios'
+import { useAuth } from '../context/AuthContext';
 
-interface ArticleDetailProps {
-  onLike: (articleId: string) => void;
-  onShare: (articleId: string) => void;
-}
-
-const ArticleDetail = ({ onLike, onShare }: ArticleDetailProps) => {
+const ArticleDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [articlesWithAnalysis, setArticlesWithAnalysis] = useState<(Article & { 
+    biasAnalysis?: LeftRightPercentages 
+  } & {
+    fakeNewsAnalysis?: FakeNewsPercentages
+  } & {
+    sentimentAnalysis?: SentimentAnalysisScore
+  })[]>([]);
+  // const { userData } = useAuth();
+  const [commentText, setCommentText] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const commentsRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+
+  const handleLike = async (articleId: string) => {
+    try {
+      // 1. Get fresh token (avoid stale token from localStorage)
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      if (!token) {
+        toast.error("Login to like articles.", {
+          id: `login-first`, // To prevent duplicates
+          duration: 2000, // 2 seconds
+          position: 'bottom-center',
+        });
+        throw new Error('No authentication token found');
+      }
+
+      // 2. Make request with debug logs
+      console.log('Using token:', token.slice(0, 10) + '...'); // Log partial token
+      const response = await axios.post(
+        `http://localhost:8000/api/user/articles/${articleId}/like`,
+        {
+          userId: userId, // Replace with the actual user ID
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` // Replace 'token' with the actual token variable
+          }
+        }
+      );            
+      console.log(response)
+  
+      // if (!response.ok) throw new Error("Failed to like article");
+      if (response.data.success === true) {
+        const response = await fetch(`http://localhost:5000/api/articles/${articleId}/like`, {
+          method: "POST",
+        });
+    
+        if (!response.ok) throw new Error("Failed to like article");
+        const updatedArticle = await response.json();
+    
+        setArticlesWithAnalysis(prevArticles =>
+          prevArticles.map(prevArticle =>
+            prevArticle.id === articleId ? { ...prevArticle, likes: updatedArticle.likes } : prevArticle
+          )
+        );
+    
+        console.log(`Liked article: ${updatedArticle.title}`);
+        toast.success(`Liked "${updatedArticle.title}"`, {
+          id: `liked-${articleId}`, // To prevent duplicates
+          duration: 2000, // 2 seconds
+          position: 'bottom-center',
+        });
+      }
+      else {
+        toast.error("You've already liked this article", {
+          id: `already-liked-${articleId}`, // To prevent duplicates
+          duration: 2000, // 2 seconds
+          position: 'bottom-center',
+        });
+      }
+    } catch (error) {
+      console.error("Error liking article:", error);
+    }
+  };
+
+  const handleShare = (articleId: string) => {
+    const url = `${window.location.origin}/article/${articleId}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Article link copied to clipboard!", {
+      id: `shared-${articleId}`, // To prevent duplicates
+      duration: 2000, // 2 seconds
+      position: 'bottom-center',
+    });
+  };  
   
   // Estimated reading time calculation
   const getReadingTime = (content: string) => {
@@ -229,8 +314,91 @@ const ArticleDetail = ({ onLike, onShare }: ArticleDetailProps) => {
     }
   }, [id]);
 
+  // Scroll to comments section if URL has #comments hash
+  useEffect(() => {
+    if (window.location.hash === '#comments' && commentsRef.current) {
+      setTimeout(() => {
+        commentsRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 500);
+    }
+  }, [loading]);
+
   const toggleBookmark = () => {
     setIsBookmarked(!isBookmarked);
+  };
+
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!commentText.trim() || !article) return;
+    
+    try {
+      setIsSubmitting(true);
+      
+      // Get user token from localStorage
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      // console.log(userId);
+      
+      if (!token) {
+        toast.error("Login to add comment.", {
+          id: `login-first-comment`, // To prevent duplicates
+          duration: 2000, // 2 seconds
+          position: 'bottom-center',
+        });
+        throw new Error('No authentication token found');
+      }
+      console.log(article.id)
+      
+      // Skip the user profile fetch and use stored information instead
+      // Post the comment directly to the news backend
+      // const commentResponse = await fetch(`http://localhost:5000/api/articles/${article.id}/comment`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json'
+      //   },
+      //   body: JSON.stringify({
+      //     userId: userId || 'anonymous',
+      //     text: commentText
+      //   })
+      // });
+      const response = await axios.post(
+        `http://localhost:8000/api/user/articles/${article.id}/comment`,
+        {
+          userId: userId, // Replace with the actual user ID
+          text: commentText,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` // Replace 'token' with the actual token variable
+          }
+        },
+      );
+      console.log(response);
+      
+      if (!response.data.success) {
+        throw new Error('Failed to add comment');
+      }
+      
+      // Get the updated article with the new comment
+      const updatedArticle = await response.data.article;
+      setArticle(updatedArticle);
+      
+      // Clear comment input
+      setCommentText('');
+      toast.success(`Comment added to article "${updatedArticle.title}"`, {
+        id: `commented_added_${updatedArticle.id}`, // To prevent duplicates
+        duration: 2000, // 2 seconds
+        position: 'bottom-center',
+      });
+
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      // alert('Failed to add comment. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -340,7 +508,7 @@ const ArticleDetail = ({ onLike, onShare }: ArticleDetailProps) => {
         </header>
         
         <div className="p-6 md:p-8">
-          <div className="prose dark:prose-invert prose-lg max-w-none mb-8">
+          <div className="text-left prose dark:prose-invert prose-lg max-w-none mb-8">
             {article.content.split('\n').map((paragraph, index) => (
               paragraph.trim() ? (
                 <p key={index} className="mb-5 leading-relaxed">
@@ -353,7 +521,7 @@ const ArticleDetail = ({ onLike, onShare }: ArticleDetailProps) => {
           <div className="border-t border-b border-border py-5 my-8">
             <div className="flex flex-wrap items-center gap-6">
               <button 
-                onClick={() => onLike(article.id)}
+                onClick={() => handleLike(article.id)}
                 className="flex items-center space-x-2 text-muted-foreground hover:text-primary transition-colors group"
               >
                 <Heart 
@@ -364,7 +532,7 @@ const ArticleDetail = ({ onLike, onShare }: ArticleDetailProps) => {
               </button>
               
               <button 
-                onClick={() => onShare(article.id)}
+                onClick={() => handleShare(article.id)}
                 className="flex items-center space-x-2 text-muted-foreground hover:text-primary transition-colors group"
               >
                 <Share2 className="group-hover:rotate-12 transition-transform h-5 w-5" />
@@ -381,7 +549,7 @@ const ArticleDetail = ({ onLike, onShare }: ArticleDetailProps) => {
             </div>
           </div>
           
-          <div id="comments" className="mt-12">
+          {/* <div id="comments" className="mt-12">
             <h2 className="text-2xl font-bold mb-6 text-foreground">Comments ({article.comments?.length || 0})</h2>
             
             {!article.comments || article.comments.length === 0 ? (
@@ -413,6 +581,72 @@ const ArticleDetail = ({ onLike, onShare }: ArticleDetailProps) => {
                         <MessageSquare className="h-3.5 w-3.5 mr-1" /> Reply
                       </button>
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div> */}
+          <div id="comments" ref={commentsRef} className="mt-12">
+            <h2 className="text-2xl font-bold mb-6 text-foreground">Comments ({article.comments?.length || 0})</h2>
+            
+            {/* Comment Form */}
+            <form onSubmit={handleCommentSubmit} className="mb-8">
+              <div className="flex flex-col space-y-3">
+                <textarea
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Add a comment..."
+                  className="w-full p-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-background text-foreground"
+                  rows={3}
+                  required
+                />
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !commentText.trim()}
+                    className={cn(
+                      "flex items-center space-x-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors",
+                      (isSubmitting || !commentText.trim()) && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    {isSubmitting ? "Posting..." : "Post Comment"}
+                  </button>
+                </div>
+              </div>
+            </form>
+            
+            {/* Comments List */}
+            {!article.comments || article.comments.length === 0 ? (
+              <div className="bg-muted/50 dark:bg-muted/20 p-6 rounded-lg text-center">
+                <p className="text-muted-foreground">No comments yet. Be the first to comment!</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {article.comments.map((comment, index) => (
+                  <div key={index} className="bg-muted dark:bg-muted/60 p-4 rounded-lg">
+                    <div className="flex items-center mb-2">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-2">
+                        {typeof comment === 'string' 
+                          ? 'U' 
+                          : comment.userName?.charAt(0).toUpperCase() || 'U'}
+                      </div>
+                      <div>
+                        <div className="font-medium text-foreground text-left">
+                          {typeof comment === 'string' 
+                            ? 'User' 
+                            : comment.userName || 'Anonymous'}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {typeof comment === 'string' 
+                            ? 'Just now' 
+                            : format(new Date(comment.createdAt), 'MMM d, yyyy • h:mm a')}
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-foreground text-left">
+                      {typeof comment === 'string' ? comment : comment.content}
+                    </p>
                   </div>
                 ))}
               </div>

@@ -171,7 +171,7 @@ const Login = () => {
         // localStorage.setItem('token', response.data.token);
         // localStorage.setItem('user', JSON.stringify(response.data.userId));
       login(email, password);
-      navigate('/for-you');
+      // navigate('/for-you');
       // } else {
       //   throw new Error('Invalid server response');
       // }

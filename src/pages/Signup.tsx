@@ -197,7 +197,7 @@ const Signup = () => {
       signup(displayName, email, password);
 
       // Redirect to the preferences page
-      navigate('/preferences');
+      // navigate('/preferences');
     } catch (err : any) {
       // Handle specific error messages from the backend
       setError(err.response?.data?.error || 'Failed to create an account. Email may already be in use.');

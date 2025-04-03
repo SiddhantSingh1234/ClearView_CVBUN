@@ -10,10 +10,11 @@ const userSchema = new mongoose.Schema({
     // topics: { type: [String], default: [] },
     sources: { type: [String], default: [] },
   },
-  likedArticles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Article' }],
+  likedArticles: [{ type: String, ref: 'Article' }],
+  likedVideos: [{ type: String, ref: 'Article' }],
   comments: [
     {
-      articleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Article' },
+      articleId: { type: String, ref: 'Article' },
       text: { type: String, required: true },
     },
   ],

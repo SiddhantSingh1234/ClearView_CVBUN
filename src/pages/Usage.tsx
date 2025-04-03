@@ -488,114 +488,93 @@
 
 // export default Usage;
 
-import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
-import { format } from 'date-fns';
-import { FiClock, FiEye, FiThumbsUp, FiMessageSquare, FiShare2 } from 'react-icons/fi';
-import { UserActivity } from '@/types';
+import { Card, CardContent } from '@/components/ui/card';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { Heart, MessageSquare, Video, Users } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const Usage = () => {
   const { userData } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalArticlesRead: 0,
-    totalTimeSpent: 0,
-    totalLikes: 0,
-    totalComments: 0,
-    totalShares: 0
-  });
 
-  useEffect(() => {
-    const fetchUserActivity = async () => {
-      if (!userData) return;
-      try {
-        setLoading(true);
-
-        // Assuming you want to fetch user activity from the backend
-        const response = await axios.get(`http://127.0.0.1:5000/user_activity/${userData._id}`);
-        const activitiesData = response.data;
-
-        // Calculate stats from the likedArticles, comments, and potential duration
-        const views = activitiesData.filter((a: UserActivity) => a.action === 'view').length;
-        const likes = userData.likedArticles.length; // Count of liked articles directly
-        const comments = userData.comments.length;   // Count of comments directly
-        const shares = activitiesData.filter((a: UserActivity) => a.action === 'share').length;
-        
-        // For time spent, since there's no direct duration, assuming preferences can contribute to it
-        const totalTime = activitiesData.reduce((sum: number, activity: UserActivity) => sum + (activity.duration || 0), 0);
-
-        setStats({
-          totalArticlesRead: views,
-          totalTimeSpent: totalTime,
-          totalLikes: likes,
-          totalComments: comments,
-          totalShares: shares
-        });
-      } catch (error) {
-        console.error('Error fetching user activity:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUserActivity();
-  }, [userData]);
-
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-  };
-
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-foreground">Your Usage</h1>
-      {!userData ? (
-        <div className="bg-card p-6 rounded-lg shadow-md text-center">
-          <h2 className="text-xl font-semibold mb-3 text-foreground">Sign In to View Your Usage</h2>
-          <p className="text-muted-foreground mb-4">You need to be logged in to see your reading history and activity.</p>
+  if (!userData) {
+    return (
+      // <div className="flex justify-center items-center h-64">
+      //   <p className="text-lg text-muted-foreground">Please sign in to view your usage statistics.</p>
+      // </div>
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        <h1 className="text-3xl font-bold mb-6 text-foreground flex items-center gap-2">
+          <Users className="text-primary" /> Your Usage
+        </h1>
+        <div className="bg-card rounded-lg shadow-md p-6 text-center">
+          <h2 className="text-xl font-semibold mb-3">Track and Optimize your Usage</h2>
+          <p className="text-primary mb-4">Sign in to get your usage.</p>
           <div className="flex justify-center space-x-4">
             <a href="/login" className="bg-primary text-primary-foreground py-2 px-4 rounded-md font-medium hover:bg-primary/90">Sign In</a>
             <a href="/signup" className="border border-primary text-primary py-2 px-4 rounded-md font-medium hover:bg-primary/10">Create Account</a>
           </div>
         </div>
-      ) : loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          {[{
-            label: 'Articles Read',
-            value: stats.totalArticlesRead,
-            icon: <FiEye className="text-primary" />
-          }, {
-            label: 'Time Spent',
-            value: formatTime(stats.totalTimeSpent),
-            icon: <FiClock className="text-primary" />
-          }, {
-            label: 'Likes',
-            value: stats.totalLikes,
-            icon: <FiThumbsUp className="text-primary" />
-          }, {
-            label: 'Comments',
-            value: stats.totalComments,
-            icon: <FiMessageSquare className="text-primary" />
-          }, {
-            label: 'Shares',
-            value: stats.totalShares,
-            icon: <FiShare2 className="text-primary" />
-          }].map((stat, index) => (
-            <div key={index} className="bg-card p-4 rounded-lg shadow-md flex items-center">
-              <div className="p-3 rounded-full bg-muted text-primary mr-4">{stat.icon}</div>
-              <div>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
-                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+      </div>
+    );
+  }
+
+  const { likedArticles, likedVideos, comments } = userData;
+
+  const stats = {
+    totalArticlesRead: likedArticles.length || 0,
+    totalVideosLiked: likedVideos.length || 0,
+    totalComments: comments.length || 0
+  };
+
+  const data = [
+    { name: 'Articles Liked', value: stats.totalArticlesRead },
+    { name: 'Videos Liked', value: stats.totalVideosLiked },
+    { name: 'Comments', value: stats.totalComments }
+  ];
+
+  return (
+    <div className="max-w-5xl mx-auto px-6 py-8">
+      <h1 className="text-3xl font-bold mb-6 text-foreground flex items-center gap-2">
+        <Users className="text-primary" /> Your Usage
+      </h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        {[{
+          label: 'Articles Liked',
+          value: stats.totalArticlesRead,
+          icon: <Heart className="text-primary" />
+        }, {
+          label: 'Comments',
+          value: stats.totalComments,
+          icon: <MessageSquare className="text-primary" />
+        }, {
+          label: 'Videos Liked',
+          value: stats.totalVideosLiked,
+          icon: <Video className="text-primary" />
+        }].map((stat, index) => (
+          <Card key={index} className="hover:shadow-xl hover:scale-105 transition-all duration-300">
+            <CardContent className="p-4 flex items-center space-x-4">
+              <div className="p-3 rounded-full bg-muted text-primary">
+                {stat.icon}
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+              <div>
+                <p className="text-lg font-medium text-muted-foreground">{stat.label}</p>
+                <p className="text-xl font-semibold text-foreground">{stat.value}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <div className="bg-card p-6 rounded-lg shadow-md">
+        <h2 className="text-xl font-bold mb-4 text-foreground">Activity Overview</h2>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={data}>
+            <XAxis dataKey="name" stroke="currentColor" className="text-muted-foreground" />
+            <YAxis stroke="currentColor" className="text-muted-foreground" />
+            <Tooltip cursor={{ fill: 'rgba(255, 255, 255, 0.1)' }} contentStyle={{ backgroundColor: '#1e293b', color: '#f8fafc', borderRadius: '6px', padding: '8px' }} itemStyle={{ color: '#f8fafc' }} />
+            <Bar dataKey="value" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 };

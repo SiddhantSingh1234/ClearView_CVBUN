@@ -330,6 +330,9 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import mongoose from 'mongoose'
 
 interface User {
   _id: string;
@@ -337,11 +340,13 @@ interface User {
   email: string;
   preferences: { categories: string[], sources: string[] };
   likedArticles: string[];
+  likedVideos: string[];
   comments: { articleId: string; text: string }[];
 }
 
 interface AuthContextType {
   userData: User | null;
+  setUserData: React.Dispatch<React.SetStateAction<User | null>>;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (username: string, email: string, password: string) => Promise<void>;
@@ -361,6 +366,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userData, setUserData] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -390,8 +396,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.setItem('token', response.data.token);
       console.log(response.data.user);
       setUserData(response.data.user);
+      toast.success("Login successfull.", {
+        id: `login-successful`, // To prevent duplicates
+        duration: 2000, // 2 seconds
+        position: 'bottom-center',
+      });
+      navigate('/for-you')
     } catch (error) {
       console.error('Login failed:', error);
+      toast.error("Login failed.", {
+        id: `login-failed`, // To prevent duplicates
+        duration: 2000, // 2 seconds
+        position: 'bottom-center',
+      });
       throw new Error('Invalid credentials');
     }
   };
@@ -401,8 +418,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const response = await axios.post('http://localhost:8000/api/auth/signup', { username, email, password });
       localStorage.setItem('token', response.data.token);
       setUserData(response.data.user);
+      toast.success("Account created successfully", {
+        id: `account-created`, // To prevent duplicates
+        duration: 2000, // 2 seconds
+        position: 'bottom-center',
+      });
+      navigate('/preferences');
     } catch (error) {
       console.error('Signup failed:', error);
+      toast.error("Signup failed.", {
+        id: `signin-failed`, // To prevent duplicates
+        duration: 2000, // 2 seconds
+        position: 'bottom-center',
+      });
       throw new Error('Signup error');
     }
   };
@@ -415,15 +443,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const updateUserPreferences = async (preferences: { categories: string[], sources: string[] }) => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('Not authenticated');
+      if (!token) {
+        toast.error("Login to set preferences.", {
+          id: `login-first-preferences`, // To prevent duplicates
+          duration: 2000, // 2 seconds
+          position: 'bottom-center',
+        });
+        throw new Error('Not authenticated');
+      }
 
-      const response = await axios.put('http://localhost:8000/api/user/preferences', preferences, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await axios.put(
+          'http://localhost:8000/api/user/preferences',
+          { preferences },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+
+      setUserData(prevUserData => {
+        if (!prevUserData) return null; // Handle case where userData is null
+      
+        return {
+          ...prevUserData,  // Spread previous user data
+          preferences: response.data.preferences, // Update only preferences
+        };
       });
-
-      setUserData(response.data);
+      toast.success("Preferences updated successfully", {
+        id: `preferences-updated`, // To prevent duplicates
+        duration: 2000, // 2 seconds
+        position: 'bottom-center',
+      });
+      navigate('/for-you')
     } catch (error) {
       console.error('Error updating preferences:', error);
+      toast.error("Error updating preferences", {
+        id: `error-updating-preferences`, // To prevent duplicates
+        duration: 2000, // 2 seconds
+        position: 'bottom-center',
+      });
       throw new Error('Failed to update preferences');
     }
   };
@@ -445,7 +505,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ userData, loading, login, signup, logout, updateUserPreferences, likeArticle }}>
+    <AuthContext.Provider value={{ userData, setUserData, loading, login, signup, logout, updateUserPreferences, likeArticle }}>
       {children}
     </AuthContext.Provider>
   );

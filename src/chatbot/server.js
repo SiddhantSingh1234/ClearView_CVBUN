@@ -247,7 +247,7 @@ dotenv.config();
 console.log('MONGODB_URI:', process.env.MONGODB_URI);
 
 const app = express();
-const PORT = process.env.PORT || 7000;
+const PORT = process.env.PORT || 9000;
 
 // Middleware
 app.use(cors());

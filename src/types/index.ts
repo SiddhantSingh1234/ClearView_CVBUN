@@ -10,9 +10,9 @@ export interface User {
   
   export interface UserPreferences {
     categories: string[];
-    topics: string[];
+    // topics: string[];
     sources: string[];
-    favorites: string[];
+    // favorites: string[];
   }
   
   export interface Article {

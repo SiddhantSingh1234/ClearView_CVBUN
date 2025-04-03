@@ -353,7 +353,7 @@ const Navbar = () => {
                     </div>
                   </button>
                   {isOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-popover rounded-md shadow-lg py-1 z-10 hidden group-hover:block">
+                    <div className="absolute right-0 mt-2 w-48 bg-popover rounded-md shadow-lg py-1 z-10">
                       <Link 
                         to="/profile" 
                         className="px-4 py-2 flex items-center text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"

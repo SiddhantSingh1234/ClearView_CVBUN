@@ -124,6 +124,9 @@ import { useEffect, useState } from "react";
 import ArticleCard from "./ArticleCard";
 import { FakeNewsPercentages, LeftRightPercentages } from '../types';
 import { Article } from "../types";
+import toast from 'react-hot-toast';
+import axios from 'axios';
+import { SentimentAnalysisScore } from "../types";
 
 const NewsList = () => {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -132,6 +135,8 @@ const NewsList = () => {
     biasAnalysis?: LeftRightPercentages 
   } & {
     fakeNewsAnalysis?: FakeNewsPercentages
+  } & {
+      sentimentAnalysis?: SentimentAnalysisScore
   })[]>([]);
 
   useEffect(() => {
@@ -218,6 +223,43 @@ const NewsList = () => {
             console.error(`Error analysing fake news flag for article ${article.id}:`, error);
           }
         });
+
+        // Sentiment Analysis Score
+        data.forEach(async (article: Article) => {
+          try {
+            const response = await fetch('http://127.0.0.1:7000/analyse_sentiment_analysis', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                input_text: `${article.title}: ${article.content}`
+              })
+            });
+            
+            const sentimentAnalysisResult = await response.json();
+            console.log(sentimentAnalysisResult)
+            
+            // Update just this specific article with its analysis
+            setArticlesWithAnalysis(prevArticles => 
+              prevArticles.map(prevArticle => 
+                prevArticle.id === article.id 
+                  ? {
+                      ...prevArticle,
+                      sentimentAnalysis: {
+                        id: article.id,
+                        label: sentimentAnalysisResult.sentiment,
+                        score: sentimentAnalysisResult.score,
+                        positive: sentimentAnalysisResult.positive,
+                        neutral: sentimentAnalysisResult.neutral,
+                        negative: sentimentAnalysisResult.negative,
+                      }
+                    }
+                  : prevArticle
+              )
+            );
+          } catch (error) {
+            console.error(`Error analysing sentiment analysis score for article ${article.id}:`, error);
+          }
+        });
       } catch (error) {
         console.error('Error fetching articles:', error);
       } finally {
@@ -230,31 +272,76 @@ const NewsList = () => {
 
   const handleLike = async (articleId: string) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/articles/${articleId}/like`, {
-        method: "POST",
-      });
+      // 1. Get fresh token (avoid stale token from localStorage)
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      if (!token) {
+        toast.error("Login to like articles.", {
+          id: `login-first`, // To prevent duplicates
+          duration: 2000, // 2 seconds
+          position: 'bottom-center',
+        });
+        throw new Error('No authentication token found');
+      }
   
-      if (!response.ok) throw new Error("Failed to like article");
+      // 2. Make request with debug logs
+      console.log('Using token:', token.slice(0, 10) + '...'); // Log partial token
+      const response = await axios.post(
+        `http://localhost:8000/api/user/articles/${articleId}/like`,
+        {
+          userId: userId, // Replace with the actual user ID
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` // Replace 'token' with the actual token variable
+          }
+        }
+      );            
+      console.log(response)
   
-      const updatedArticle = await response.json();
-  
-      setArticlesWithAnalysis(prevArticles =>
-        prevArticles.map(prevArticle =>
-          prevArticle.id === articleId ? { ...prevArticle, likes: updatedArticle.likes } : prevArticle
-        )
-      );
-  
-      console.log(`Liked article: ${updatedArticle.title}`);
+      // if (!response.ok) throw new Error("Failed to like article");
+      if (response.data.success === true) {
+        const response = await fetch(`http://localhost:5000/api/articles/${articleId}/like`, {
+          method: "POST",
+        });
+    
+        if (!response.ok) throw new Error("Failed to like article");
+        const updatedArticle = await response.json();
+    
+        setArticlesWithAnalysis(prevArticles =>
+          prevArticles.map(prevArticle =>
+            prevArticle.id === articleId ? { ...prevArticle, likes: updatedArticle.likes } : prevArticle
+          )
+        );
+    
+        console.log(`Liked article: ${updatedArticle.title}`);
+        toast.success(`Liked "${updatedArticle.title}"`, {
+          id: `liked-${articleId}`, // To prevent duplicates
+          duration: 2000, // 2 seconds
+          position: 'bottom-center',
+        });
+      }
+      else {
+        toast.error("You've already liked this article", {
+          id: `already-liked-${articleId}`, // To prevent duplicates
+          duration: 2000, // 2 seconds
+          position: 'bottom-center',
+        });
+      }
     } catch (error) {
       console.error("Error liking article:", error);
     }
   };
 
   const handleShare = (articleId: string) => {
-    const article = articlesWithAnalysis.find(a => a.id === articleId);
-    if (article) {
-      console.log(`Sharing article: ${article.title}`);
-    }
+    const url = `${window.location.origin}/article/${articleId}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Article link copied to clipboard!", {
+      id: `shared-${articleId}`, // To prevent duplicates
+      duration: 2000, // 2 seconds
+      position: 'bottom-center',
+    });
   };
 
   return (
@@ -288,6 +375,7 @@ const NewsList = () => {
               article={article}
               percentage={article.biasAnalysis}
               fakeNewsPercentage={article.fakeNewsAnalysis}
+              sentimentNewsScore={article.sentimentAnalysis}
               onLike={handleLike}
               onShare={handleShare}
             />

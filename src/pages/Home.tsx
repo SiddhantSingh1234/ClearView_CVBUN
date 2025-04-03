@@ -338,6 +338,9 @@ import CategoryFilter from '../components/CategoryFilter';
 import { Article, FakeNewsPercentages, SentimentAnalysisScore } from '../types';
 import { LeftRightPercentages } from '../types';
 import './Home.css';
+import toast from 'react-hot-toast'; // Assuming you're using Lucide icons
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 const Home = () => {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -350,6 +353,7 @@ const Home = () => {
   } & {
     sentimentAnalysis?: SentimentAnalysisScore
   })[]>([]);
+  const { userData, setUserData } = useAuth();
 
   const categories = [
     'Politics', 'Business', 'Tech', 'Sports', 'Entertainment', 'General'
@@ -488,31 +492,85 @@ const Home = () => {
 
   const handleLike = async (articleId: string) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/articles/${articleId}/like`, {
-        method: "POST",
-      });
+      // 1. Get fresh token (avoid stale token from localStorage)
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      if (!token) {
+        toast.error("Login to like articles.", {
+          id: `login-first`, // To prevent duplicates
+          duration: 2000, // 2 seconds
+          position: 'bottom-center',
+        });
+        throw new Error('No authentication token found');
+      }
   
-      if (!response.ok) throw new Error("Failed to like article");
+      // 2. Make request with debug logs
+      console.log('Using token:', token.slice(0, 10) + '...'); // Log partial token
+      const response = await axios.post(
+        `http://localhost:8000/api/user/articles/${articleId}/like`,
+        {
+          userId: userId, // Replace with the actual user ID
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` // Replace 'token' with the actual token variable
+          }
+        }
+      );            
+      console.log(response)
   
-      const updatedArticle = await response.json();
-  
-      setArticlesWithAnalysis(prevArticles =>
-        prevArticles.map(prevArticle =>
-          prevArticle.id === articleId ? { ...prevArticle, likes: updatedArticle.likes } : prevArticle
-        )
-      );
-  
-      console.log(`Liked article: ${updatedArticle.title}`);
+      // if (!response.ok) throw new Error("Failed to like article");
+      if (response.data.success === true) {
+        const response = await fetch(`http://localhost:5000/api/articles/${articleId}/like`, {
+          method: "POST",
+        });
+    
+        if (!response.ok) throw new Error("Failed to like article");
+        const updatedArticle = await response.json();
+    
+        setArticlesWithAnalysis(prevArticles =>
+          prevArticles.map(prevArticle =>
+            prevArticle.id === articleId ? { ...prevArticle, likes: updatedArticle.likes } : prevArticle
+          )
+        );
+
+        setUserData(prevUserData => {
+          if (!prevUserData) return null;
+          
+          return {
+            ...prevUserData,
+            likedArticles: [...prevUserData.likedArticles, articleId]
+          };
+        });
+
+        console.log(`Liked article: ${updatedArticle.title}`);
+        toast.success(`Liked "${updatedArticle.title}"`, {
+          id: `liked-${articleId}`, // To prevent duplicates
+          duration: 2000, // 2 seconds
+          position: 'bottom-center',
+        });
+      }
+      else {
+        toast.error("You've already liked this article", {
+          id: `already-liked-${articleId}`, // To prevent duplicates
+          duration: 2000, // 2 seconds
+          position: 'bottom-center',
+        });
+      }
     } catch (error) {
       console.error("Error liking article:", error);
     }
   };  
 
   const handleShare = (articleId: string) => {
-    const article = articlesWithAnalysis.find(a => a.id === articleId);
-    if (article) {
-      console.log(`Sharing article: ${article.title}`);
-    }
+    const url = `${window.location.origin}/article/${articleId}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Article link copied to clipboard!", {
+      id: `shared-${articleId}`, // To prevent duplicates
+      duration: 2000, // 2 seconds
+      position: 'bottom-center',
+    });
   };
 
   const filteredArticles = selectedCategories.length > 0

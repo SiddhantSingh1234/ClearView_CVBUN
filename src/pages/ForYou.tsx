@@ -135,6 +135,7 @@ import { Article } from '../types';
 import axios from 'axios';
 import { FakeNewsPercentages, SentimentAnalysisScore } from '../types';
 import { LeftRightPercentages } from '../types';
+import toast from 'react-hot-toast';
 
 interface FilterType {
   category?: { $in: string[] };
@@ -320,19 +321,78 @@ const ForYou = () => {
     fetchPersonalizedArticles();
   }, [userData]);
 
-  const handleLike = (articleId: string) => {
-    setArticles(articles.map(article =>
-      article.id === articleId
-        ? { ...article, likes: article.likes + 1 }
-        : article
-    ));
+  const handleLike = async (articleId: string) => {
+    try {
+      // 1. Get fresh token (avoid stale token from localStorage)
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      if (!token) {
+        toast.error("Login to like articles.", {
+          id: `login-first`, // To prevent duplicates
+          duration: 2000, // 2 seconds
+          position: 'bottom-center',
+        });
+        throw new Error('No authentication token found');
+      }
+  
+      // 2. Make request with debug logs
+      console.log('Using token:', token.slice(0, 10) + '...'); // Log partial token
+      const response = await axios.post(
+        `http://localhost:8000/api/user/articles/${articleId}/like`,
+        {
+          userId: userId, // Replace with the actual user ID
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` // Replace 'token' with the actual token variable
+          }
+        }
+      );            
+      console.log(response)
+  
+      // if (!response.ok) throw new Error("Failed to like article");
+      if (response.data.success === true) {
+        const response = await fetch(`http://localhost:5000/api/articles/${articleId}/like`, {
+          method: "POST",
+        });
+    
+        if (!response.ok) throw new Error("Failed to like article");
+        const updatedArticle = await response.json();
+    
+        setArticlesWithAnalysis(prevArticles =>
+          prevArticles.map(prevArticle =>
+            prevArticle.id === articleId ? { ...prevArticle, likes: updatedArticle.likes } : prevArticle
+          )
+        );
+    
+        console.log(`Liked article: ${updatedArticle.title}`);
+        toast.success(`Liked "${updatedArticle.title}"`, {
+          id: `liked-${articleId}`, // To prevent duplicates
+          duration: 2000, // 2 seconds
+          position: 'bottom-center',
+        });
+      }
+      else {
+        toast.error("You've already liked this article", {
+          id: `already-liked-${articleId}`, // To prevent duplicates
+          duration: 2000, // 2 seconds
+          position: 'bottom-center',
+        });
+      }
+    } catch (error) {
+      console.error("Error liking article:", error);
+    }
   };
 
   const handleShare = (articleId: string) => {
-    const article = articles.find(a => a.id === articleId);
-    if (article) {
-      console.log(`Sharing article: ${article.title}`);
-    }
+    const url = `${window.location.origin}/article/${articleId}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Article link copied to clipboard!", {
+      id: `shared-${articleId}`, // To prevent duplicates
+      duration: 2000, // 2 seconds
+      position: 'bottom-center',
+    });
   };
 
   return (
@@ -341,7 +401,7 @@ const ForYou = () => {
       {!userData ? (
         <div className="bg-card rounded-lg shadow-md p-6 text-center">
           <h2 className="text-xl font-semibold mb-3">Personalize Your News Feed</h2>
-          <p className="text-secondary mb-4">Sign in to get news recommendations tailored to your interests.</p>
+          <p className="text-primary mb-4">Sign in to get news recommendations tailored to your interests.</p>
           <div className="flex justify-center space-x-4">
             <a href="/login" className="bg-primary text-primary-foreground py-2 px-4 rounded-md font-medium hover:bg-primary/90">Sign In</a>
             <a href="/signup" className="border border-primary text-primary py-2 px-4 rounded-md font-medium hover:bg-primary/10">Create Account</a>

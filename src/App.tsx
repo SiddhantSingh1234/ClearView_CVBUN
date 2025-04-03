@@ -120,34 +120,37 @@ import { ThemeProvider } from "@/components/theme-provider"
 import VideoList from './components/VideoList';
 import ChatbotPage from './pages/Chatbotpage';
 import ArticleDetail from './components/ArticleDetail';
+import { Toaster } from 'react-hot-toast';
+import UserProfilePage from './pages/Profile';
 
 function App() {
-  // Add these functions to handle like and share actions
-  const handleLike = async (id: string) => {
-    try {
-      const response = await fetch(`http://localhost:5000/api/articles/${id}/like`, {
-        method: "POST",
-      });
-      if (!response.ok) throw new Error("Failed to like article");
-      return await response.json();
-    } catch (error) {
-      console.error("Error liking article:", error);
-    }
-  };
+  // // Add these functions to handle like and share actions
+  // const handleLike = async (id: string) => {
+  //   try {
+  //     const response = await fetch(`http://localhost:5000/api/articles/${id}/like`, {
+  //       method: "POST",
+  //     });
+  //     if (!response.ok) throw new Error("Failed to like article");
+  //     return await response.json();
+  //   } catch (error) {
+  //     console.error("Error liking article:", error);
+  //   }
+  // };
 
-  const handleShare = (id: string) => {
-    // You can implement sharing functionality here
-    // For now, simply copy the URL to clipboard
-    const articleUrl = `${window.location.origin}/article/${id}`;
-    navigator.clipboard.writeText(articleUrl);
-    alert("Article link copied to clipboard!");
-  };
+  // const handleShare = (id: string) => {
+  //   // You can implement sharing functionality here
+  //   // For now, simply copy the URL to clipboard
+  //   const articleUrl = `${window.location.origin}/article/${id}`;
+  //   navigator.clipboard.writeText(articleUrl);
+  //   alert("Article link copied to clipboard!");
+  // };
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <Router>
         <AuthProvider>
           <div className="min-h-screen bg-background text-foreground">
+            <Toaster position="top-right" reverseOrder={false} />
             <Navbar />
             <main className="max-w-7xl mx-auto p-8 text-center">
               <Routes>
@@ -166,8 +169,9 @@ function App() {
                 <Route path="/chatbot" element={<ChatbotPage />} />
                 <Route 
                   path="/article/:id" 
-                  element={<ArticleDetail onLike={handleLike} onShare={handleShare} />} 
+                  element={<ArticleDetail />} 
                 />
+                <Route path="/profile" element={<UserProfilePage />} />
               </Routes>
             </main>
             <footer className="bg-card border-t border-border py-8">

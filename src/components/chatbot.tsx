@@ -91,7 +91,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ onClose }) => {
 
     try {
       // Send the question to the backend API
-      const response = await fetch('http://localhost:7000/api/chatbot', {
+      const response = await fetch('http://localhost:9000/api/chatbot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question }),

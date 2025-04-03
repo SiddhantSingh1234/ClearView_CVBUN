@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import VideoCard from "./VideoCard";
+import axios from 'axios';
+import toast from 'react-hot-toast';
 
 interface Video {
   _id: string;
@@ -75,19 +77,63 @@ const VideoList = () => {
 
   const handleLike = async (videoId: string) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/videos/${videoId}/like`, {
-        method: "POST",
-      });
+      // 1. Get fresh token (avoid stale token from localStorage)
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      if (!token) {
+        toast.error("Login to like videos.", {
+          id: `login-first-video`, // To prevent duplicates
+          duration: 2000, // 2 seconds
+          position: 'bottom-center',
+        });
+        throw new Error('No authentication token found');
+      }
+
+      // 2. Make request with debug logs
+      console.log('Using token:', token.slice(0, 10) + '...'); // Log partial token
+      const response = await axios.post(
+        `http://localhost:8000/api/user/videos/${videoId}/like`,
+        {
+          userId: userId, // Replace with the actual user ID
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` // Replace 'token' with the actual token variable
+          }
+        }
+      );            
+      console.log(response)
   
-      if (!response.ok) throw new Error("Failed to like video");
-  
-      const updatedVideo = await response.json();
-  
-      setVideos(prevVideos =>
-        prevVideos.map(prevVideo =>
-          prevVideo.id === videoId ? { ...prevVideo, likes: updatedVideo.likes } : prevVideo
-        )
-      );
+      // if (!response.ok) throw new Error("Failed to like article");
+      if (response.data.success === true) {
+        const response = await fetch(`http://localhost:5000/api/videos/${videoId}/like`, {
+          method: "POST",
+        });
+    
+        if (!response.ok) throw new Error("Failed to like article");
+        const updatedVideo = await response.json();
+    
+        setVideos(prevVideos =>
+          prevVideos.map(prevVideo =>
+            prevVideo.id === videoId ? { ...prevVideo, likes: updatedVideo.likes } : prevVideo
+          )
+        );
+    
+        console.log(`Liked article: ${updatedVideo.title}`);
+        toast.success(`Liked "${updatedVideo.title}"`, {
+          id: `liked-${videoId}`, // To prevent duplicates
+          duration: 2000, // 2 seconds
+          position: 'bottom-center',
+        });
+      }
+      else {
+        toast.error("You've already liked this video", {
+          id: `already-liked-${videoId}`, // To prevent duplicates
+          duration: 2000, // 2 seconds
+          position: 'bottom-center',
+        });
+      }
     } catch (error) {
       console.error("Error liking video:", error);
     }

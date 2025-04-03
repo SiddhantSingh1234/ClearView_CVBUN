@@ -4,6 +4,7 @@ import cors from "cors";
 
 const app = express();
 app.use(cors()); // Enable CORS
+app.use(express.json()); // Parse JSON bodies
 
 // MongoDB Connection
 const MONGO_URI = "mongodb://127.0.0.1:27017/news_db";
@@ -27,7 +28,15 @@ const articleSchema = new mongoose.Schema({
   category: { type: String, default: "General" },
   topics: { type: [String], default: ["news"] },
   likes: { type: Number, default: 0 },
-  comments: { type: [String], default: [] },
+  comments: { type: [{ 
+    id: String,
+    userId: String,
+    userName: String,
+    content: String,
+    createdAt: { type: Date, default: Date.now },
+    likes: { type: Number, default: 0 }
+  }], 
+  default: [] },
 });
 
 const videoSchema = new mongoose.Schema({
@@ -143,6 +152,51 @@ app.get("/for_you_news", async (req, res) => {
   }
 });
 
+// User_liked_articles
+app.get("/user_liked_articles", async (req, res) => {
+  try {
+    const { articleIds } = req.query; // Get articleIds from query params
+
+    if (!articleIds) {
+      return res.status(400).json({ error: "Article IDs are required" });
+    }
+
+    // Convert articleIds into an array if it's a comma-separated string
+    const likedArticleIds = Array.isArray(articleIds) ? articleIds : articleIds.split(",");
+    // console.log(likedArticleIds)
+    // Fetch articles that match the given article IDs
+    const articles = await Article.find({ id: { $in: likedArticleIds } }).sort({ _id: -1 });
+    // console.log(articles)
+    // If no articles found, return an empty array
+    if (!articles.length) {
+      return res.json([]);
+    }
+
+    // Format articles for response
+    const formattedArticles = articles.map(article => ({
+      _id: article._id,
+      id: article.id,
+      title: article.title,
+      description: article.description,
+      content: article.content,
+      author: article.author,
+      source: article.source,
+      url: article.url,
+      imageUrl: article.imageUrl,
+      publishedAt: article.publishedAt ? article.publishedAt.toISOString() : null,
+      category: article.category,
+      topics: article.topics,
+      likes: article.likes,
+      comments: article.comments,
+    }));
+    // console.log(formattedArticles);
+    res.json(formattedArticles);
+  } catch (error) {
+    console.error("Error fetching articles:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 // GET single article API
 app.get("/api/articles/:id", async (req, res) => {
   try {
@@ -195,6 +249,43 @@ app.post("/api/articles/:id/like", async (req, res) => {
   }
 });
 
+// Add a comment to an article
+app.post("/api/articles/:id/comment", async (req, res) => {
+  try {
+    // console.log(req.body)
+    const { userId, userName, text } = req.body;
+    
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: "Comment text is required" });
+    }
+    
+    const article = await Article.findOne({ id: req.params.id });
+    // console.log(article)
+    if (!article) {
+      return res.status(404).json({ error: "Article not found" });
+    }
+    
+    // Create comment object
+    const comment = {
+      id: new mongoose.Types.ObjectId().toString(),
+      userId: userId || 'anonymous',
+      userName: userName || 'Anonymous',
+      content: text,
+      createdAt: new Date(),
+      likes: 0
+    };
+    
+    // Add comment to article
+    article.comments.push(comment);
+    await article.save();
+    
+    res.json(article);
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 // GET Videos API
 app.get("/videos", async (req, res) => {
   try {
@@ -235,15 +326,14 @@ app.get("/videos", async (req, res) => {
 // POST: Like a Video
 app.post("/api/videos/:id/like", async (req, res) => {
   try {
-    const video = await Video.findOneAndUpdate(
-      { id: req.params.id },
-      { $inc: { likes: 1 } },
-      { new: true }
-    );
+    const video = await Video.findOne({ id: req.params.id });
     
     if (!video) {
       return res.status(404).json({ error: "Video not found" });
     }
+    
+    video.likes = (video.likes || 0) + 1;
+    await video.save();
     
     res.json(video);
   } catch (error) {
