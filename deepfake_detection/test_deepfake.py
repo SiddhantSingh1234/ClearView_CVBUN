@@ -25,7 +25,7 @@ def add_test_deepfake():
         "publishedAt": datetime.now().isoformat(),
         "category": "Technology",
         "views": 15000,
-        "likes": 320,
+        "likes": 0,
         "isDeepfake": None,  # We'll let the detector analyze this
         "deepfakeScore": None,
         "analyzed": False
@@ -46,7 +46,7 @@ def add_test_deepfake():
         "publishedAt": datetime.now().isoformat(),
         "category": "Politics",
         "views": 25000,
-        "likes": 450,
+        "likes": 0,
         "isDeepfake": None,
         "deepfakeScore": None,
         "analyzed": False

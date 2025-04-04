@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1743750645473" clover="3.2.0">
-  <project timestamp="1743750645473" name="All files">
-    <metrics statements="1085" coveredstatements="801" conditionals="528" coveredconditionals="343" methods="277" coveredmethods="196" elements="1890" coveredelements="1340" complexity="0" loc="1085" ncloc="1085" packages="16" files="44" classes="44"/>
+<coverage generated="1743751596093" clover="3.2.0">
+  <project timestamp="1743751596093" name="All files">
+    <metrics statements="1085" coveredstatements="799" conditionals="528" coveredconditionals="343" methods="277" coveredmethods="196" elements="1890" coveredelements="1338" complexity="0" loc="1085" ncloc="1085" packages="16" files="44" classes="44"/>
     <package name="src">
       <metrics statements="3" coveredstatements="0" conditionals="2" coveredconditionals="0" methods="2" coveredmethods="0"/>
       <file name="App.tsx" path="E:\ClearView_WebApplication_Latest\ClearView_CVBUN\src\App.tsx">
@@ -275,7 +275,7 @@
       </file>
     </package>
     <package name="src.components">
-      <metrics statements="381" coveredstatements="296" conditionals="289" coveredconditionals="174" methods="100" coveredmethods="74"/>
+      <metrics statements="381" coveredstatements="294" conditionals="289" coveredconditionals="174" methods="100" coveredmethods="74"/>
       <file name="ArticleCard.tsx" path="E:\ClearView_WebApplication_Latest\ClearView_CVBUN\src\components\ArticleCard.tsx">
         <metrics statements="21" coveredstatements="7" conditionals="48" coveredconditionals="18" methods="10" coveredmethods="3"/>
         <line num="29" count="1" type="stmt"/>
@@ -301,7 +301,7 @@
         <line num="283" count="1" type="stmt"/>
       </file>
       <file name="ArticleDetail.tsx" path="E:\ClearView_WebApplication_Latest\ClearView_CVBUN\src\components\ArticleDetail.tsx">
-        <metrics statements="93" coveredstatements="69" conditionals="73" coveredconditionals="47" methods="17" coveredmethods="13"/>
+        <metrics statements="93" coveredstatements="67" conditionals="73" coveredconditionals="47" methods="17" coveredmethods="13"/>
         <line num="26" count="1" type="stmt"/>
         <line num="27" count="27" type="stmt"/>
         <line num="28" count="27" type="stmt"/>
@@ -382,8 +382,8 @@
         <line num="221" count="0" type="stmt"/>
         <line num="224" count="0" type="stmt"/>
         <line num="225" count="0" type="stmt"/>
-        <line num="232" count="1" type="stmt"/>
-        <line num="235" count="1" type="stmt"/>
+        <line num="232" count="0" type="stmt"/>
+        <line num="235" count="0" type="stmt"/>
         <line num="239" count="27" type="cond" truecount="2" falsecount="0"/>
         <line num="240" count="12" type="stmt"/>
         <line num="249" count="15" type="cond" truecount="4" falsecount="0"/>
