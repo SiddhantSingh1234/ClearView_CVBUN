@@ -4,10 +4,13 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ModeToggle } from '../mode-toggle';
 
+// Create a mock function for setTheme
+const mockSetTheme = jest.fn();
+
 // Mock the theme provider
 jest.mock('@/components/theme-provider', () => ({
   useTheme: () => ({
-    setTheme: jest.fn(),
+    setTheme: mockSetTheme,
   }),
 }));
 
@@ -24,6 +27,11 @@ jest.mock('@/components/ui/dropdown-menu', () => ({
 }));
 
 describe('ModeToggle Component', () => {
+  // Reset the mock before each test
+  beforeEach(() => {
+    mockSetTheme.mockClear();
+  });
+
   it('renders the theme toggle button', () => {
     render(<ModeToggle />);
     

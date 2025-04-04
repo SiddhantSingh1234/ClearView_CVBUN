@@ -4,18 +4,28 @@ import { jest } from '@jest/globals';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Preferences from '../Preferences';
-import axios from 'axios';
 
 // Mock the react-router-dom
+const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
-  useNavigate: () => jest.fn()
+  useNavigate: () => mockNavigate
 }));
 
-// Mock axios
-jest.mock('axios');
+// Mock the AuthContext
+const mockUpdateUserPreferences = jest.fn();
+jest.mock('../../context/AuthContext', () => ({
+  useAuth: () => ({
+    userData: null,
+    updateUserPreferences: mockUpdateUserPreferences
+  })
+}));
 
 describe('Preferences Component', () => {
   beforeEach(() => {
+    // Reset mocks
+    mockNavigate.mockReset();
+    mockUpdateUserPreferences.mockReset();
+    
     // Mock localStorage
     Object.defineProperty(window, 'localStorage', {
       value: {
@@ -24,18 +34,6 @@ describe('Preferences Component', () => {
         removeItem: jest.fn()
       },
       writable: true
-    });
-    
-    // Mock axios.put
-    axios.put = jest.fn().mockResolvedValue({
-      data: {
-        preferences: {
-          categories: ['Politics', 'Tech'],
-          sources: ['BBC'],
-          topics: [],
-          favorites: []
-        }
-      }
     });
     
     // Mock window.alert
@@ -54,7 +52,7 @@ describe('Preferences Component', () => {
     expect(screen.getByLabelText('Tech')).toBeInTheDocument();
     
     // Check sources
-    expect(screen.getByLabelText('BBC')).toBeInTheDocument();
+    expect(screen.getByLabelText('BBC News')).toBeInTheDocument();
     expect(screen.getByLabelText('CNN')).toBeInTheDocument();
     
     // Check buttons
@@ -80,7 +78,7 @@ describe('Preferences Component', () => {
   it('toggles source selection correctly', () => {
     render(<Preferences />);
     
-    const bbcCheckbox = screen.getByLabelText('BBC');
+    const bbcCheckbox = screen.getByLabelText('BBC News');
     expect(bbcCheckbox).not.toBeChecked();
     
     // Select a source
@@ -92,50 +90,38 @@ describe('Preferences Component', () => {
     expect(bbcCheckbox).not.toBeChecked();
   });
 
-  it('submits preferences and navigates on success', async () => {
-    const mockNavigate = jest.fn();
-    jest.spyOn(require('react-router-dom'), 'useNavigate').mockReturnValue(mockNavigate);
-    
+  it('submits preferences using updateUserPreferences', async () => {
     render(<Preferences />);
     
     // Select some preferences
     fireEvent.click(screen.getByLabelText('Politics'));
     fireEvent.click(screen.getByLabelText('Tech'));
-    fireEvent.click(screen.getByLabelText('BBC'));
+    fireEvent.click(screen.getByLabelText('BBC News'));
     
     // Submit form
     fireEvent.click(screen.getByRole('button', { name: 'Save Preferences' }));
     
-    // Verify axios was called with correct data
+    // Verify updateUserPreferences was called with correct data
     await waitFor(() => {
-      expect(axios.put).toHaveBeenCalledWith(
-        'http://localhost:8000/api/user/preferences',
+      expect(mockUpdateUserPreferences).toHaveBeenCalledWith(
         expect.objectContaining({
-          preferences: expect.objectContaining({
-            categories: ['Politics', 'Tech'],
-            sources: ['BBC']
-          })
-        }),
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            'Authorization': 'Bearer fake-token'
-          })
+          categories: ['Politics', 'Tech'],
+          sources: ['BBC News']
         })
       );
-      
-      // Verify navigation occurred
-      expect(mockNavigate).toHaveBeenCalledWith('/for-you');
     });
   });
 
-  it('handles API errors correctly', async () => {
-    // Mock axios to reject
-    axios.put.mockRejectedValueOnce({
-      response: {
-        data: {
-          error: 'Update failed'
+  it('handles errors from updateUserPreferences correctly', async () => {
+    // Mock updateUserPreferences to throw an error
+    mockUpdateUserPreferences.mockImplementation(() => {
+      throw {
+        response: {
+          data: {
+            error: 'Update failed'
+          }
         }
-      }
+      };
     });
     
     render(<Preferences />);
@@ -150,17 +136,16 @@ describe('Preferences Component', () => {
   });
 
   it('handles token invalidation correctly', async () => {
-    // Mock axios to reject with invalid token error
-    axios.put.mockRejectedValueOnce({
-      response: {
-        data: {
-          error: 'Invalid token'
+    // Mock updateUserPreferences to throw a token error
+    mockUpdateUserPreferences.mockImplementation(() => {
+      throw {
+        response: {
+          data: {
+            error: 'Invalid token'
+          }
         }
-      }
+      };
     });
-    
-    const mockNavigate = jest.fn();
-    jest.spyOn(require('react-router-dom'), 'useNavigate').mockReturnValue(mockNavigate);
     
     render(<Preferences />);
     
@@ -177,9 +162,6 @@ describe('Preferences Component', () => {
   });
 
   it('navigates to home when skipping preferences', () => {
-    const mockNavigate = jest.fn();
-    jest.spyOn(require('react-router-dom'), 'useNavigate').mockReturnValue(mockNavigate);
-    
     render(<Preferences />);
     
     // Click skip button

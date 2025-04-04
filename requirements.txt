@@ -17,3 +17,4 @@ numpy
 opencv-python
 yt-dlp
 ffmpeg-python
+coverage

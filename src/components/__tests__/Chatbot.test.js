@@ -53,21 +53,22 @@ describe('Chatbot Component', () => {
     const input = screen.getByPlaceholderText('Type your question here...');
     fireEvent.change(input, { target: { value: 'What is fake news?' } });
     
-    // Submit the question - use type="submit" instead of name
-    const sendButton = screen.getByRole('button', { type: 'submit' });
-    fireEvent.click(sendButton);
+    // Submit the form instead of clicking the button
+    const form = screen.getByRole('textbox').closest('form');
+    fireEvent.submit(form);
     
-    // Wait for response
+    // Wait for both question and answer to appear
     await waitFor(() => {
-      expect(screen.getByText('Fake news refers to false or misleading information presented as news.')).toBeInTheDocument();
+      expect(screen.getByText('Q: What is fake news?')).toBeInTheDocument();
+      expect(screen.getByText('A: Fake news refers to false or misleading information presented as news.')).toBeInTheDocument();
     });
     
     // Check that input was cleared
     expect(input).toHaveValue('');
     
-    // Verify API call
+    // Verify API call with correct endpoint URL
     expect(global.fetch).toHaveBeenCalledWith(
-      'http://localhost:5000/api/chatbot',
+      'http://localhost:9000/api/chatbot',
       expect.objectContaining({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -77,29 +78,41 @@ describe('Chatbot Component', () => {
   });
 
   it('handles API errors gracefully', async () => {
-    // ... existing code ...
+    // Mock failed API response
+    global.fetch.mockRejectedValueOnce(new Error('Network error'));
+    
+    // Mock console.error
+    const originalConsoleError = console.error;
+    console.error = jest.fn();
+    
+    render(<Chatbot onClose={mockOnClose} />);
     
     // Type and submit a question
     const input = screen.getByPlaceholderText('Type your question here...');
     fireEvent.change(input, { target: { value: 'What is fake news?' } });
     
-    const sendButton = screen.getByRole('button', { type: 'submit' });
-    fireEvent.click(sendButton);
+    // Submit the form
+    const form = screen.getByRole('textbox').closest('form');
+    fireEvent.submit(form);
     
     // Wait for error message
     await waitFor(() => {
-      expect(screen.getByText(i)).toBeInTheDocument();
+      expect(screen.getByText('Error: Failed to get a response.')).toBeInTheDocument();
     });
     
+    // Verify console.error was called
     expect(console.error).toHaveBeenCalled();
+    
+    // Restore original console.error
+    console.error = originalConsoleError;
   });
 
   it('prevents submission of empty questions', () => {
     render(<Chatbot onClose={mockOnClose} />);
     
     // Try to submit without typing anything
-    const sendButton = screen.getByRole('button', { type: 'submit' });
-    fireEvent.click(sendButton);
+    const form = screen.getByRole('textbox').closest('form');
+    fireEvent.submit(form);
     
     // Verify no API call was made
     expect(global.fetch).not.toHaveBeenCalled();

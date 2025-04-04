@@ -4,115 +4,156 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import PoliticalLeaningBar from '../PoliticalLeaningBar';
 
+// Mock the next-themes hook
+jest.mock('next-themes', () => ({
+  useTheme: () => ({
+    theme: 'light',
+    systemTheme: 'light',
+  }),
+}));
+
+// Mock canvas operations
+HTMLCanvasElement.prototype.getContext = jest.fn(() => ({
+  createLinearGradient: jest.fn(() => ({
+    addColorStop: jest.fn(),
+  })),
+  fillRect: jest.fn(),
+}));
+
+Object.defineProperty(HTMLCanvasElement.prototype, 'offsetWidth', {
+  configurable: true,
+  value: 500,
+});
+
+Object.defineProperty(HTMLCanvasElement.prototype, 'offsetHeight', {
+  configurable: true,
+  value: 50,
+});
+
 describe('PoliticalLeaningBar Component', () => {
-  it('renders with left and right percentages', () => {
-    render(<PoliticalLeaningBar leftPercentage={30} rightPercentage={70} />);
+  const defaultData = {
+    farLeft: 0.2,
+    leanLeft: 0.2,
+    center: 0.2,
+    leanRight: 0.2,
+    farRight: 0.2,
+  };
+
+  it('renders with political leaning data', () => {
+    render(<PoliticalLeaningBar data={defaultData} />);
     
-    expect(screen.getByText('30%')).toBeInTheDocument();
-    expect(screen.getByText('70%')).toBeInTheDocument();
-    expect(screen.getByText('Left')).toBeInTheDocument();
-    expect(screen.getByText('Right')).toBeInTheDocument();
+    expect(screen.getByText('Far Left')).toBeInTheDocument();
+    expect(screen.getByText('Lean Left')).toBeInTheDocument();
+    expect(screen.getByText('Center')).toBeInTheDocument();
+    expect(screen.getByText('Lean Right')).toBeInTheDocument();
+    expect(screen.getByText('Far Right')).toBeInTheDocument();
+    
+    // Check percentages - use regex to match the formatted percentage
+    const percentageTexts = screen.getAllByText(/20\.0%/);
+    expect(percentageTexts.length).toBe(5); // One for each category
   });
 
-  it('renders with equal percentages', () => {
-    render(<PoliticalLeaningBar leftPercentage={50} rightPercentage={50} />);
+  it('renders with left-leaning bias', () => {
+    const leftBiasData = {
+      farLeft: 0.4,
+      leanLeft: 0.3,
+      center: 0.2,
+      leanRight: 0.05,
+      farRight: 0.05,
+    };
     
-    expect(screen.getByText('50%')).toBeInTheDocument();
-    expect(screen.getAllByText('50%')).toHaveLength(2);
+    render(<PoliticalLeaningBar data={leftBiasData} />);
+    
+    // Check for specific percentages
+    expect(screen.getByText(/40\.0%/)).toBeInTheDocument(); // farLeft
+    expect(screen.getByText(/30\.0%/)).toBeInTheDocument(); // leanLeft
+    expect(screen.getByText(/20\.0%/)).toBeInTheDocument(); // center
+    
+    // Both leanRight and farRight have 5.0%
+    const fivePercentTexts = screen.getAllByText(/5\.0%/);
+    expect(fivePercentTexts.length).toBe(2);
   });
 
-  it('renders with extreme left bias', () => {
-    render(<PoliticalLeaningBar leftPercentage={90} rightPercentage={10} />);
+  it('renders with right-leaning bias', () => {
+    const rightBiasData = {
+      farLeft: 0.05,
+      leanLeft: 0.05,
+      center: 0.2,
+      leanRight: 0.3,
+      farRight: 0.4,
+    };
     
-    expect(screen.getByText('90%')).toBeInTheDocument();
-    expect(screen.getByText('10%')).toBeInTheDocument();
+    render(<PoliticalLeaningBar data={rightBiasData} />);
     
-    // Check that left bar is much wider than right bar
-    const leftBar = screen.getByTestId('left-bar');
-    const rightBar = screen.getByTestId('right-bar');
+    // Both farLeft and leanLeft have 5.0%
+    const fivePercentTexts = screen.getAllByText(/5\.0%/);
+    expect(fivePercentTexts.length).toBe(2);
     
-    expect(leftBar).toHaveStyle('width: 90%');
-    expect(rightBar).toHaveStyle('width: 10%');
+    expect(screen.getByText(/20\.0%/)).toBeInTheDocument(); // center
+    expect(screen.getByText(/30\.0%/)).toBeInTheDocument(); // leanRight
+    expect(screen.getByText(/40\.0%/)).toBeInTheDocument(); // farRight
   });
 
-  it('renders with extreme right bias', () => {
-    render(<PoliticalLeaningBar leftPercentage={5} rightPercentage={95} />);
+  it('renders with center bias', () => {
+    const centerBiasData = {
+      farLeft: 0.1,
+      leanLeft: 0.2,
+      center: 0.4,
+      leanRight: 0.2,
+      farRight: 0.1,
+    };
     
-    expect(screen.getByText('5%')).toBeInTheDocument();
-    expect(screen.getByText('95%')).toBeInTheDocument();
+    render(<PoliticalLeaningBar data={centerBiasData} />);
     
-    // Check that right bar is much wider than left bar
-    const leftBar = screen.getByTestId('left-bar');
-    const rightBar = screen.getByTestId('right-bar');
+    // Both farLeft and farRight have 10.0%
+    const tenPercentTexts = screen.getAllByText(/10\.0%/);
+    expect(tenPercentTexts.length).toBe(2);
     
-    expect(leftBar).toHaveStyle('width: 5%');
-    expect(rightBar).toHaveStyle('width: 95%');
+    // Both leanLeft and leanRight have 20.0%
+    const twentyPercentTexts = screen.getAllByText(/20\.0%/);
+    expect(twentyPercentTexts.length).toBe(2);
+    
+    expect(screen.getByText(/40\.0%/)).toBeInTheDocument(); // center
   });
 
-  it('renders with custom class names', () => {
-    render(
-      <PoliticalLeaningBar 
-        leftPercentage={40} 
-        rightPercentage={60} 
-        className="custom-container"
-        leftClassName="custom-left"
-        rightClassName="custom-right"
-      />
-    );
+  it('renders with custom class name', () => {
+    render(<PoliticalLeaningBar data={defaultData} className="custom-container" />);
     
-    const container = screen.getByTestId('political-leaning-container');
-    const leftBar = screen.getByTestId('left-bar');
-    const rightBar = screen.getByTestId('right-bar');
-    
+    const container = screen.getByLabelText('Political leaning distribution visualization').closest('div');
     expect(container).toHaveClass('custom-container');
-    expect(leftBar).toHaveClass('custom-left');
-    expect(rightBar).toHaveClass('custom-right');
   });
 
-  it('renders with custom labels', () => {
-    render(
-      <PoliticalLeaningBar 
-        leftPercentage={40} 
-        rightPercentage={60} 
-        leftLabel="Liberal"
-        rightLabel="Conservative"
-      />
-    );
+  it('handles zero values gracefully', () => {
+    const zeroData = {
+      farLeft: 0,
+      leanLeft: 0,
+      center: 0,
+      leanRight: 0,
+      farRight: 1,
+    };
     
-    expect(screen.getByText('Liberal')).toBeInTheDocument();
-    expect(screen.getByText('Conservative')).toBeInTheDocument();
-    expect(screen.queryByText('Left')).not.toBeInTheDocument();
-    expect(screen.queryByText('Right')).not.toBeInTheDocument();
+    render(<PoliticalLeaningBar data={zeroData} />);
+    
+    // Check for zero percentages
+    const zeroPercentTexts = screen.getAllByText(/0\.0%/);
+    expect(zeroPercentTexts.length).toBe(5); // Four categories with 0%
+    
+    expect(screen.getByText(/100\.0%/)).toBeInTheDocument(); // farRight with 100%
   });
 
-  it('handles zero percentages gracefully', () => {
-    render(<PoliticalLeaningBar leftPercentage={0} rightPercentage={100} />);
+  it('renders canvas element correctly', () => {
+    render(<PoliticalLeaningBar data={defaultData} />);
     
-    expect(screen.getByText('0%')).toBeInTheDocument();
-    expect(screen.getByText('100%')).toBeInTheDocument();
-    
-    const leftBar = screen.getByTestId('left-bar');
-    const rightBar = screen.getByTestId('right-bar');
-    
-    expect(leftBar).toHaveStyle('width: 0%');
-    expect(rightBar).toHaveStyle('width: 100%');
+    const canvas = screen.getByLabelText('Political leaning distribution visualization');
+    expect(canvas).toBeInTheDocument();
+    expect(canvas.tagName.toLowerCase()).toBe('canvas');
   });
 
-  it('renders with title when provided', () => {
-    render(
-      <PoliticalLeaningBar 
-        leftPercentage={40} 
-        rightPercentage={60} 
-        title="Political Bias Analysis"
-      />
-    );
+  it('renders color indicators for each category', () => {
+    render(<PoliticalLeaningBar data={defaultData} />);
     
-    expect(screen.getByText('Political Bias Analysis')).toBeInTheDocument();
-  });
-
-  it('renders without title when not provided', () => {
-    render(<PoliticalLeaningBar leftPercentage={40} rightPercentage={60} />);
-    
-    expect(screen.queryByText('Political Bias Analysis')).not.toBeInTheDocument();
+    // Check that we have 5 color indicators (one for each category)
+    const colorIndicators = document.querySelectorAll('.w-4.h-4.rounded-full');
+    expect(colorIndicators.length).toBe(5);
   });
 });

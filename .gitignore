@@ -70,3 +70,6 @@ uploading_to_huggingface.py
 
 # CSV files
 *.csv
+
+# Code Coverage
+coverage/
