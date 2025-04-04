@@ -73,3 +73,5 @@ uploading_to_huggingface.py
 
 # Code Coverage
 coverage/
+**/.coverage
+htmlcov/
