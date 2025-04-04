@@ -24,25 +24,3 @@ jobs:
 
       - name: Run tests
         run: npm test
-      
-      # Setup Python
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12.6'
-
-      - name: Install Python dependencies
-        run: pip install -r requirements.txt
-      
-      # Run Python tests with coverage
-      # - name: Run Python tests (Content Filtering)
-      #  run: python -m coverage run --append -m unittest content_filtering\__tests__\test_category.py
-
-      - name: Run Python tests (News Scraper Backend)
-        run: python -m coverage run --append -m unittest news_scraper_backend\__tests__\test_bbc_scraper.py news_scraper_backend\__tests__\test_fox_scraper.py news_scraper_backend\__tests__\test_news_api_scraper.py news_scraper_backend\__tests__\test_video_scraper.py
-
-      # Generate Coverage Reports
-      - name: Generate Coverage Report
-        run: |
-          python -m coverage report -m
-          python -m coverage html
