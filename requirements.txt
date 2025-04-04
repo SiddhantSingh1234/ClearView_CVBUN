@@ -18,5 +18,3 @@ opencv-python
 yt-dlp
 ffmpeg-python
 coverage
-supertest
-mongodb-memory-server
